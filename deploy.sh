@@ -51,7 +51,7 @@ mkdir -p media
 
 # Stop existing containers
 echo -e "${GREEN}🛑 Stopping existing containers...${NC}"
-docker-compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml down
 
 # Remove old images (optional)
 echo -e "${GREEN}🧹 Cleaning up old images...${NC}"
@@ -59,7 +59,7 @@ docker system prune -f
 
 # Build and start services
 echo -e "${GREEN}🔨 Building and starting services...${NC}"
-docker-compose -f docker-compose.prod.yml up --build -d
+docker compose -f docker-compose.prod.yml up --build -d
 
 # Wait for database to be ready
 echo -e "${GREEN}⏳ Waiting for database to be ready...${NC}"
@@ -67,26 +67,26 @@ sleep 10
 
 # Run migrations
 echo -e "${GREEN}🗄️  Running database migrations...${NC}"
-docker-compose -f docker-compose.prod.yml exec web python manage.py migrate
+docker compose -f docker-compose.prod.yml exec web python manage.py migrate
 
 # Create superuser (optional)
 echo -e "${YELLOW}👤 Do you want to create a superuser? (y/n)${NC}"
 read -r response
 if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-    docker-compose -f docker-compose.prod.yml exec web python manage.py createsuperuser
+    docker compose -f docker-compose.prod.yml exec web python manage.py createsuperuser
 fi
 
 # Collect static files
 echo -e "${GREEN}📦 Collecting static files...${NC}"
-docker-compose -f docker-compose.prod.yml exec web python manage.py collectstatic --noinput
+docker compose -f docker-compose.prod.yml exec web python manage.py collectstatic --noinput
 
 # Check if services are running
 echo -e "${GREEN}🔍 Checking service status...${NC}"
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml ps
 
 # Show logs
 echo -e "${GREEN}📋 Recent logs:${NC}"
-docker-compose -f docker-compose.prod.yml logs --tail=20
+docker compose -f docker-compose.prod.yml logs --tail=20
 
 echo -e "${GREEN}✅ Deployment completed successfully!${NC}"
 echo -e "${GREEN}🌐 Your application should be available at: http://localhost${NC}"

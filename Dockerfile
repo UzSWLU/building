@@ -19,8 +19,11 @@ COPY . .
 
 ENV DJANGO_SETTINGS_MODULE=project_core.settings
 
-EXPOSE 8000
+EXPOSE 8080
 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+
+
 
 
