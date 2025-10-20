@@ -24,8 +24,19 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('app_rttm.urls')),
     path('health/', health_check, name='health_check'),
-    path('api/schema/', include('drf_spectacular.urls')),
 ]
+
+# Add drf-spectacular URLs only if the package is available
+try:
+    from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+    urlpatterns += [
+        path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+        path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+        path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    ]
+except ImportError:
+    # drf-spectacular is not installed, skip schema URLs
+    pass
 
 # Serve media files in development
 if settings.DEBUG:
