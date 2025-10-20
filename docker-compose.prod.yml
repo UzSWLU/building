@@ -2,10 +2,12 @@ services:
   db:
     image: postgres:15-alpine
     restart: unless-stopped
+    env_file:
+      - .env.prod  # 👈 SHU QATORNI QO'SHING!
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-rttm}
-      POSTGRES_USER: ${POSTGRES_USER:-rttm}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rttm_secure_password}
+      POSTGRES_DB: ${POSTGRES_DB:}
+      POSTGRES_USER: ${POSTGRES_USER:}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -21,6 +23,8 @@ services:
       context: .
       dockerfile: Dockerfile.prod
     restart: unless-stopped
+    env_file:
+      - .env.prod  # 👈 SHU QATORNI QO'SHING!
     environment:
       - DJANGO_SETTINGS_MODULE=project_core.settings_prod
       - POSTGRES_DB=${POSTGRES_DB:-rttm}
