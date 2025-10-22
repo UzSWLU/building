@@ -37,7 +37,7 @@ class Migration(migrations.Migration):
             name='BuildingImage',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(storage=app_rttm.models.RTTMMediaStorage('building'), upload_to='buildings/%Y/%m/')),
+                ('image', models.ImageField(storage=app_rttm.models.BuildingMediaStorage('building'), upload_to='buildings/%Y/%m/')),
                 ('title', models.CharField(blank=True, max_length=255, null=True)),
                 ('is_main', models.BooleanField(default=False)),
                 ('uploaded_at', models.DateTimeField(auto_now_add=True)),
@@ -105,7 +105,7 @@ class Migration(migrations.Migration):
             name='DeviceImage',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(storage=app_rttm.models.RTTMMediaStorage('hijoz'), upload_to='devices/%Y/%m/')),
+                ('image', models.ImageField(storage=app_rttm.models.BuildingMediaStorage('hijoz'), upload_to='devices/%Y/%m/')),
                 ('title', models.CharField(blank=True, max_length=255, null=True)),
                 ('is_main', models.BooleanField(default=False)),
                 ('uploaded_at', models.DateTimeField(auto_now_add=True)),
@@ -123,7 +123,7 @@ class Migration(migrations.Migration):
                 ('model', models.CharField(blank=True, max_length=255, null=True)),
                 ('manufacturer', models.CharField(blank=True, max_length=255, null=True)),
                 ('description', models.TextField(blank=True, null=True)),
-                ('picture', models.ImageField(blank=True, null=True, storage=app_rttm.models.RTTMMediaStorage('device_type'), upload_to='device_types/%Y/%m/')),
+                ('picture', models.ImageField(blank=True, null=True, storage=app_rttm.models.BuildingMediaStorage('device_type'), upload_to='device_types/%Y/%m/')),
                 ('category', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='device_types', to='app_rttm.category')),
                 ('created_by', models.ForeignKey(blank=True, editable=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='%(class)s_createdt', to=settings.AUTH_USER_MODEL, verbose_name='Kim yaratdi')),
                 ('updated_by', models.ForeignKey(blank=True, editable=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='%(class)s_updated', to=settings.AUTH_USER_MODEL, verbose_name='Kim yangiladi')),
@@ -239,7 +239,7 @@ class Migration(migrations.Migration):
             name='RoomImage',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(storage=app_rttm.models.RTTMMediaStorage('room'), upload_to='rooms/%Y/%m/')),
+                ('image', models.ImageField(storage=app_rttm.models.BuildingMediaStorage('room'), upload_to='rooms/%Y/%m/')),
                 ('title', models.CharField(blank=True, max_length=255, null=True)),
                 ('is_main', models.BooleanField(default=False)),
                 ('uploaded_at', models.DateTimeField(auto_now_add=True)),
