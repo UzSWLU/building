@@ -196,10 +196,10 @@ fi
 
 # Final status
 print_status "🎉 Deployment completed successfully!"
-print_status "🌐 Application URL: https://$DOMAIN"
-print_status "📚 Swagger UI: https://$DOMAIN"
-print_status "🔧 Admin Panel: https://$DOMAIN/admin"
-print_status "💚 Health Check: https://$DOMAIN/health/"
+print_status "🌐 Application URL: http://$DOMAIN:5001"
+print_status "📚 Swagger UI: http://$DOMAIN:5001"
+print_status "🔧 Admin Panel: http://$DOMAIN:5001/admin"
+print_status "💚 Health Check: http://$DOMAIN:5001/health/"
 
 # Show container status
 print_status "📊 Container Status:"
