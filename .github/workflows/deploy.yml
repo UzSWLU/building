@@ -67,35 +67,35 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-           script: |
-             cd /var/www/building-api
-             git pull origin main
-             
-             # Environment variables'ni sozlash
-             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" > .env.prod
-             echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env.prod
-             echo "DJANGO_DEBUG=0" >> .env.prod
-             echo "DJANGO_ALLOWED_HOSTS=building.swagger.uzswlu.uz" >> .env.prod
-             echo "POSTGRES_DB=building" >> .env.prod
-             echo "POSTGRES_USER=building" >> .env.prod
-             echo "POSTGRES_HOST=db" >> .env.prod
-             echo "POSTGRES_PORT=5432" >> .env.prod
-             echo "AUTH_BASE_URL=https://auth.uzswlu.uz" >> .env.prod
-             echo "AUTH_TIMEOUT=10" >> .env.prod
-             echo "AUTH_CACHE_TIMEOUT=300" >> .env.prod
-             
-             docker-compose -f docker-compose.prod.yml down
-             docker-compose -f docker-compose.prod.yml build --no-cache
-             docker-compose -f docker-compose.prod.yml up -d
-             sleep 10
-             docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
-             docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
-             docker-compose -f docker-compose.prod.yml exec -T web python manage.py shell -c "
-             from django.contrib.auth import get_user_model
-             User = get_user_model()
-             if not User.objects.filter(username='admin').exists():
-                 User.objects.create_superuser('admin', 'admin@uzswlu.uz', 'admin123')
-                 print('Superuser created: admin/admin123')
-             else:
-                 print('Superuser already exists')
-             "
+          script: |
+            cd /var/www/building-api
+            git pull origin main
+            
+            # Environment variables'ni sozlash
+            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" > .env.prod
+            echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env.prod
+            echo "DJANGO_DEBUG=0" >> .env.prod
+            echo "DJANGO_ALLOWED_HOSTS=building.swagger.uzswlu.uz" >> .env.prod
+            echo "POSTGRES_DB=building" >> .env.prod
+            echo "POSTGRES_USER=building" >> .env.prod
+            echo "POSTGRES_HOST=db" >> .env.prod
+            echo "POSTGRES_PORT=5432" >> .env.prod
+            echo "AUTH_BASE_URL=https://auth.uzswlu.uz" >> .env.prod
+            echo "AUTH_TIMEOUT=10" >> .env.prod
+            echo "AUTH_CACHE_TIMEOUT=300" >> .env.prod
+            
+            docker-compose -f docker-compose.prod.yml down
+            docker-compose -f docker-compose.prod.yml build --no-cache
+            docker-compose -f docker-compose.prod.yml up -d
+            sleep 10
+            docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
+            docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
+            docker-compose -f docker-compose.prod.yml exec -T web python manage.py shell -c "
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            if not User.objects.filter(username='admin').exists():
+                User.objects.create_superuser('admin', 'admin@uzswlu.uz', 'admin123')
+                print('Superuser created: admin/admin123')
+            else:
+                print('Superuser already exists')
+            "
