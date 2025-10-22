@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# RTTM Building API Deployment Script
+# Building API Deployment Script
 # For server: 172.22.0.19
 # Domain: building.swagger.uzswlu.uz
 
 set -e
 
-echo "🚀 Starting RTTM Building API deployment..."
+echo "🚀 Starting Building API deployment..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -162,7 +162,7 @@ fi
 print_status "Setting up systemd service..."
 cat > /etc/systemd/system/building-api.service << EOF
 [Unit]
-Description=RTTM Building API
+Description=Building API
 Requires=docker.service
 After=docker.service
 

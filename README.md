@@ -1,6 +1,6 @@
-# RTTM Building API
+# Building API
 
-Real-Time Technology Management (RTTM) Django REST API for managing buildings, rooms, devices, and maintenance requests.
+Building Management Django REST API for managing buildings, rooms, devices, and maintenance requests.
 
 ## 🚀 Features
 
@@ -26,24 +26,28 @@ Real-Time Technology Management (RTTM) Django REST API for managing buildings, r
 ## 📋 API Endpoints
 
 ### Buildings
+
 - `GET /api/buildings/` - List all buildings
 - `POST /api/buildings/` - Create building
 - `GET /api/building-images/` - List building images
 - `POST /api/building-images/` - Upload building images
 
 ### Rooms
+
 - `GET /api/rooms/` - List all rooms
 - `POST /api/rooms/` - Create room
 - `GET /api/room-images/` - List room images
 - `POST /api/room-images/` - Upload room images
 
 ### Devices
+
 - `GET /api/devices/` - List all devices
 - `POST /api/devices/` - Create device
 - `POST /api/devices/{id}/move/` - Move device to new room
 - `POST /api/devices/{id}/change_condition/` - Change device condition
 
 ### Repairs & Service Logs
+
 - `GET /api/repair-requests/` - List repair requests
 - `POST /api/repair-requests/` - Create repair request
 - `GET /api/service-logs/` - List service logs
@@ -54,18 +58,21 @@ Real-Time Technology Management (RTTM) Django REST API for managing buildings, r
 ### Development Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/a-d-sh/building.git
    cd building
    ```
 
 2. **Create environment file**
+
    ```bash
    cp env.prod.example .env.prod
    # Edit .env.prod with your settings
    ```
 
 3. **Run with Docker**
+
    ```bash
    docker-compose up --build -d
    ```
@@ -79,6 +86,7 @@ Real-Time Technology Management (RTTM) Django REST API for managing buildings, r
 ### Production Deployment
 
 1. **Server Setup** (172.22.0.19)
+
    ```bash
    # Upload deploy.sh to server
    chmod +x deploy.sh
@@ -93,6 +101,7 @@ Real-Time Technology Management (RTTM) Django REST API for managing buildings, r
 ## 🔐 Authentication
 
 The API uses Bearer token authentication with external auth service integration:
+
 - **Auth Service**: `https://auth.uzswlu.uz`
 - **Token Format**: Bearer token in Authorization header
 - **Roles**: Admin, Creator, User
@@ -119,6 +128,7 @@ docker-compose logs -f web
 ## 🔄 CI/CD Pipeline
 
 GitHub Actions automatically:
+
 - ✅ Runs tests on every push/PR
 - 🚀 Deploys to production on main branch
 - 🔧 Builds Docker images
@@ -135,15 +145,15 @@ GitHub Actions automatically:
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DJANGO_SECRET_KEY` | Django secret key | Required |
-| `DJANGO_DEBUG` | Debug mode | 0 |
-| `DJANGO_ALLOWED_HOSTS` | Allowed hosts | building.swagger.uzswlu.uz |
-| `POSTGRES_DB` | Database name | rttm |
-| `POSTGRES_USER` | Database user | rttm |
-| `POSTGRES_PASSWORD` | Database password | Required |
-| `AUTH_BASE_URL` | Auth service URL | https://auth.uzswlu.uz |
+| Variable               | Description       | Default                    |
+| ---------------------- | ----------------- | -------------------------- |
+| `DJANGO_SECRET_KEY`    | Django secret key | Required                   |
+| `DJANGO_DEBUG`         | Debug mode        | 0                          |
+| `DJANGO_ALLOWED_HOSTS` | Allowed hosts     | building.swagger.uzswlu.uz |
+| `POSTGRES_DB`          | Database name     | rttm                       |
+| `POSTGRES_USER`        | Database user     | rttm                       |
+| `POSTGRES_PASSWORD`    | Database password | Required                   |
+| `AUTH_BASE_URL`        | Auth service URL  | https://auth.uzswlu.uz     |
 
 ## 📝 Default Credentials
 
@@ -184,10 +194,11 @@ This project is licensed under the MIT License.
 ## 🆘 Support
 
 For support and questions:
+
 - **Issues**: GitHub Issues
 - **Documentation**: Swagger UI
 - **Health Check**: `/health/` endpoint
 
 ---
 
-**RTTM Building API** - Professional Django REST API for technology management 🚀
+**Building API** - Professional Django REST API for building management 🚀

@@ -87,9 +87,9 @@ WSGI_APPLICATION = 'project_core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'rttm'),
-        'USER': os.getenv('POSTGRES_USER', 'rttm'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'rttm'),
+        'NAME': os.getenv('POSTGRES_DB', 'building'),
+        'USER': os.getenv('POSTGRES_USER', 'building'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'building'),
         'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
         'PORT': os.getenv('POSTGRES_PORT', '5432'),
     }
@@ -154,8 +154,8 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'RTTM API',
-    'DESCRIPTION': '🔐 RTTM Tizimi REST API - Bearer token bilan autentifikatsiya',
+    'TITLE': 'Building API',
+    'DESCRIPTION': '🔐 Building Tizimi REST API - Bearer token bilan autentifikatsiya',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 

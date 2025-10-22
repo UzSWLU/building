@@ -13,13 +13,13 @@ from .middleware import get_current_user_id, get_current_username
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
-class RTTMMediaStorage(FileSystemStorage):
-    """rttm media ichidagi fayllarni boshqaradi"""
+class BuildingMediaStorage(FileSystemStorage):
+    """building media ichidagi fayllarni boshqaradi"""
     def __init__(self, subfolder: str = '', *args, **kwargs):
-        location = os.path.join(settings.MEDIA_ROOT, 'rttmmedia', subfolder)
+        location = os.path.join(settings.MEDIA_ROOT, 'buildingmedia', subfolder)
         os.makedirs(location, exist_ok=True)
         kwargs['location'] = location
-        kwargs['base_url'] = f'{settings.MEDIA_URL}rttmmedia/{subfolder}/'
+        kwargs['base_url'] = f'{settings.MEDIA_URL}buildingmedia/{subfolder}/'
         super().__init__(*args, **kwargs)
 
 
@@ -108,7 +108,7 @@ class Main(models.Model):
 
 
 # ==================== BINOLAR ====================
-building_storage = RTTMMediaStorage('building')
+building_storage = BuildingMediaStorage('building')
 
 
 class Building(Main):
@@ -136,7 +136,7 @@ class BuildingImage(models.Model):
 
 
 # ==================== XONALAR ====================
-room_storage = RTTMMediaStorage('room')
+room_storage = BuildingMediaStorage('room')
 
 
 class Room(Main):
@@ -192,7 +192,7 @@ class Category(Main):
         return self.name
 
 
-device_type_storage = RTTMMediaStorage('device_type')
+device_type_storage = BuildingMediaStorage('device_type')
 
 
 class DeviceType(Main):
@@ -208,7 +208,7 @@ class DeviceType(Main):
 
 
 # ==================== JIHOZLAR ====================
-hijoz_storage = RTTMMediaStorage('hijoz')
+hijoz_storage = BuildingMediaStorage('hijoz')
 
 
 class Device(Main):

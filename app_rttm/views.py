@@ -925,6 +925,6 @@ def health_check(request):
     """Health check endpoint for monitoring"""
     return JsonResponse({
         'status': 'healthy',
-        'service': 'RTTM Django API',
+        'service': 'Building Django API',
         'version': '1.0.0'
     })
