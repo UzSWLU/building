@@ -10,6 +10,7 @@ from .views import (
     DeviceViewSet, DeviceImageViewSet,
     DeviceLocationViewSet, DeviceLocationHistoryViewSet, DeviceConditionHistoryViewSet,
     RepairRequestViewSet, ServiceLogViewSet,
+    health_check,
 )
 
 router = DefaultRouter()
@@ -30,6 +31,7 @@ router.register('service-logs', ServiceLogViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('health/', health_check, name='health_check'),
 ]
 
 

@@ -8,10 +8,11 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 
-from .middleware import get_current_user
+from .middleware import get_current_user_id, get_current_username
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
 class RTTMMediaStorage(FileSystemStorage):
     """rttm media ichidagi fayllarni boshqaradi"""
     def __init__(self, subfolder: str = '', *args, **kwargs):
@@ -30,7 +31,7 @@ def mac_address_validator(value):
 
 class Main(models.Model):
     """
-    Bazaviy model - created_by va updated_by AVTOMATIK.
+    Bazaviy model - created_by va updated_by AVTOMATIK (External Auth bilan ishlaydi)
     """
     STATUS_CHOICES = (
         ("active", _("Faol")),
@@ -45,24 +46,35 @@ class Main(models.Model):
         verbose_name=_("Holat")
     )
 
-    created_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
+    # External auth uchun - string ID ishlatamiz
+    created_by_id = models.CharField(
+        max_length=255,
         null=True,
         blank=True,
         editable=False,
-        related_name="%(class)s_createdt",
+        verbose_name=_("Kim yaratdi (ID)")
+    )
+    created_by_name = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        editable=False,
         verbose_name=_("Kim yaratdi")
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Yaratilgan sana"))
 
-    updated_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
+    updated_by_id = models.CharField(
+        max_length=255,
         null=True,
         blank=True,
         editable=False,
-        related_name="%(class)s_updated",
+        verbose_name=_("Kim yangiladi (ID)")
+    )
+    updated_by_name = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        editable=False,
         verbose_name=_("Kim yangiladi")
     )
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Yangilangan sana"))
@@ -72,23 +84,25 @@ class Main(models.Model):
 
     def save(self, *args, **kwargs):
         """
-        AVTOMATIK USER SAQLASH - DEBUG bilan.
+        AVTOMATIK USER SAQLASH - External auth bilan ishlash
         """
-        user = get_current_user()
+        user_id = get_current_user_id()
+        user_name = get_current_username()
 
-        logger.info(f"save() chaqirildi. User: {user}")
-        logger.info(f"User authenticated: {getattr(user, 'is_authenticated', False) if user else 'No user'}")
-        logger.info(f"Model: {self.__class__.__name__}, PK: {self.pk}")
+        logger.debug(f"save() chaqirildi. User ID: {user_id}, Username: {user_name}")
+        logger.debug(f"Model: {self.__class__.__name__}, PK: {self.pk}")
 
-        if user and getattr(user, 'is_authenticated', False):
+        if user_id and user_name:
             if not self.pk:
-                self.created_by = user
-                logger.info(f"✅ created_by o'rnatildi: {user}")
+                self.created_by_id = str(user_id)
+                self.created_by_name = user_name
+                logger.info(f"✅ created_by o'rnatildi: {user_name} (ID: {user_id})")
 
-            self.updated_by = user
-            logger.info(f"✅ updated_by o'rnatildi: {user}")
+            self.updated_by_id = str(user_id)
+            self.updated_by_name = user_name
+            logger.info(f"✅ updated_by o'rnatildi: {user_name} (ID: {user_id})")
         else:
-            logger.warning(f"⚠️ User topilmadi yoki authenticated emas!")
+            logger.warning(f"⚠️ User topilmadi! Model: {self.__class__.__name__}")
 
         super().save(*args, **kwargs)
 

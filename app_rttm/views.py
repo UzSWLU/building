@@ -11,6 +11,8 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 
+from .permissions import AuthPermission, AdminOnlyPermission, ReadOnlyPermission, SmartPermission
+
 from .models import (
     Building, BuildingImage,
     Room, RoomImage,
@@ -34,8 +36,15 @@ from .serializers import (
 )
 
 
-# class DefaultPermissions(permissions.IsAuthenticated):
-#     pass
+# Auth permission classes
+class DefaultPermissions(SmartPermission):
+    pass
+
+class AdminOnlyPermissions(AdminOnlyPermission):
+    pass
+
+class ReadOnlyPermissions(ReadOnlyPermission):
+    pass
 
 
 @extend_schema_view(
@@ -87,7 +96,7 @@ from .serializers import (
 class BuildingViewSet(viewsets.ModelViewSet):
     queryset = Building.objects.all()
     serializer_class = BuildingSerializer
-    # permission_classes = [DefaultPermissions]
+    permission_classes = [DefaultPermissions]
 
     # MUHIM: Bu parsers qo'shildi - form-data va JSON formatlarini qabul qilish uchun
     parser_classes = [JSONParser, MultiPartParser, FormParser]
@@ -163,7 +172,7 @@ class BuildingViewSet(viewsets.ModelViewSet):
 class BuildingImageViewSet(viewsets.ModelViewSet):
     queryset = BuildingImage.objects.all()
     serializer_class = BuildingImageSerializer
-    # permission_classes = [DefaultPermissions]
+    permission_classes = [DefaultPermissions]
 
     # MUHIM: Rasmlar uchun multipart parser kerak
     parser_classes = [MultiPartParser, FormParser]
@@ -281,7 +290,7 @@ class BuildingImageViewSet(viewsets.ModelViewSet):
 class RoomViewSet(viewsets.ModelViewSet):
     queryset = Room.objects.select_related('building').all()
     serializer_class = RoomSerializer
-    # permission_classes = [DefaultPermissions]
+    permission_classes = [DefaultPermissions]
 
     # JSON va form-data formatlarini qabul qilish
     parser_classes = [JSONParser, MultiPartParser, FormParser]
@@ -370,7 +379,7 @@ class RoomViewSet(viewsets.ModelViewSet):
 class RoomImageViewSet(viewsets.ModelViewSet):
     queryset = RoomImage.objects.select_related('room').all()
     serializer_class = RoomImageSerializer
-    # permission_classes = [DefaultPermissions]
+    permission_classes = [DefaultPermissions]
 
     parser_classes = [MultiPartParser, FormParser]
 
@@ -487,7 +496,7 @@ class RoomImageViewSet(viewsets.ModelViewSet):
 class ResponsiblePersonViewSet(viewsets.ModelViewSet):
     queryset = ResponsiblePerson.objects.select_related('user', 'building', 'room').all()
     serializer_class = ResponsiblePersonSerializer
-    # permission_classes = [DefaultPermissions]
+    permission_classes = [AdminOnlyPermissions]
 
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 
@@ -508,7 +517,7 @@ class ResponsiblePersonViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.select_related('parent').all()
     serializer_class = CategorySerializer
-    # permission_classes = [DefaultPermissions]
+    permission_classes = [DefaultPermissions]
 
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 
@@ -568,7 +577,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class DeviceTypeViewSet(viewsets.ModelViewSet):
     queryset = DeviceType.objects.select_related('category').all()
     serializer_class = DeviceTypeSerializer
-    # permission_classes = [DefaultPermissions]
+    permission_classes = [DefaultPermissions]
 
     # DeviceType da picture maydoni bor, shuning uchun multipart kerak
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -590,7 +599,7 @@ class DeviceTypeViewSet(viewsets.ModelViewSet):
 class DeviceViewSet(viewsets.ModelViewSet):
     queryset = Device.objects.select_related('device_type', 'device_type__category').all()
     serializer_class = DeviceSerializer
-    # permission_classes = [DefaultPermissions]
+    permission_classes = [DefaultPermissions]
 
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 
@@ -726,7 +735,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
 class DeviceImageViewSet(viewsets.ModelViewSet):
     queryset = DeviceImage.objects.select_related('device').all()
     serializer_class = DeviceImageSerializer
-    # permission_classes = [DefaultPermissions]
+    permission_classes = [DefaultPermissions]
 
     parser_classes = [MultiPartParser, FormParser]
 
@@ -834,7 +843,7 @@ class DeviceImageViewSet(viewsets.ModelViewSet):
 class DeviceLocationViewSet(viewsets.ModelViewSet):
     queryset = DeviceLocation.objects.select_related('device', 'room').all()
     serializer_class = DeviceLocationSerializer
-    # permission_classes = [DefaultPermissions]
+    permission_classes = [DefaultPermissions]
 
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 
@@ -849,7 +858,7 @@ class DeviceLocationViewSet(viewsets.ModelViewSet):
 class DeviceLocationHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = DeviceLocationHistory.objects.select_related('device', 'new_room', 'old_room').all()
     serializer_class = DeviceLocationHistorySerializer
-    # permission_classes = [DefaultPermissions]
+    permission_classes = [ReadOnlyPermissions]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['device', 'new_room', 'old_room']
 
@@ -861,7 +870,7 @@ class DeviceLocationHistoryViewSet(viewsets.ReadOnlyModelViewSet):
 class DeviceConditionHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = DeviceConditionHistory.objects.select_related('device').all()
     serializer_class = DeviceConditionHistorySerializer
-    # permission_classes = [DefaultPermissions]
+    permission_classes = [ReadOnlyPermissions]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['device', 'new_condition']
 
@@ -877,7 +886,7 @@ class DeviceConditionHistoryViewSet(viewsets.ReadOnlyModelViewSet):
 class RepairRequestViewSet(viewsets.ModelViewSet):
     queryset = RepairRequest.objects.select_related('device', 'requested_by', 'assigned_to').all()
     serializer_class = RepairRequestSerializer
-    # permission_classes = [DefaultPermissions]
+    permission_classes = [DefaultPermissions]
 
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 
@@ -898,7 +907,7 @@ class RepairRequestViewSet(viewsets.ModelViewSet):
 class ServiceLogViewSet(viewsets.ModelViewSet):
     queryset = ServiceLog.objects.select_related('device', 'performed_by', 'repair_request').all()
     serializer_class = ServiceLogSerializer
-    # permission_classes = [DefaultPermissions]
+    permission_classes = [DefaultPermissions]
 
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 

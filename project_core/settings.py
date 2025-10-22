@@ -54,8 +54,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Auth middleware - access token tekshirish
+    'app_rttm.auth_middleware.AuthMiddleware',
+    'app_rttm.auth_middleware.RolePermissionMiddleware',
     # Capture current user for audit fields
-    # 'app_rttm.middleware.CurrentUserMiddleware',
+    'app_rttm.middleware.CurrentUserMiddleware',
 ]
 
 ROOT_URLCONF = 'project_core.urls'
@@ -134,6 +137,8 @@ STATICFILES_DIRS = []
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# ... existing code until REST_FRAMEWORK ...
+
 # DRF / Spectacular / Filters
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
@@ -144,50 +149,58 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
-    # CSRF muammosini vaqtincha bartaraf etish uchun SessionAuthentication o'rniga
-    # Basic/Token autentifikatsiyasidan foydalanamiz. SessionAuthentication CSRF talab qiladi.
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.BasicAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        # 'rest_framework.permissions.IsAuthenticated',
-    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    'DEFAULT_PERMISSION_CLASSES': [],
 }
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'RTTM API',
+    'DESCRIPTION': '🔐 RTTM Tizimi REST API - Bearer token bilan autentifikatsiya',
     'VERSION': '1.0.0',
-    'SORT_OPERATIONS': False,
-    'COMPONENT_SPLIT_REQUEST': True,
-    'COMPONENT_NO_READ_ONLY_REQUIRED': True,
-    'ENUM_NAME_OVERRIDES': {
-        'DeviceConditionEnum': 'app_rttm.models.Device.CONDITION_CHOICES',
-        'RepairPriorityEnum': 'app_rttm.models.RepairRequest.PRIORITY_CHOICES',
-        'RepairStatusEnum': 'app_rttm.models.RepairRequest.REQUEST_STATUS_CHOICES',
-        'ServiceTypeEnum': 'app_rttm.models.ServiceLog.SERVICE_TYPE_CHOICES',
+    'SERVE_INCLUDE_SCHEMA': False,
+
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'BearerAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+                'description': 'Access tokenni kiriting (Bearer so\'zisiz)',
+            }
+        }
     },
+
+    'SECURITY': [{'BearerAuth': []}],
+
     'SWAGGER_UI_SETTINGS': {
         'deepLinking': True,
         'persistAuthorization': True,
         'displayOperationId': True,
         'tryItOutEnabled': True,
-        'requestInterceptor': '(req) => { req.headers["Content-Type"] = "multipart/form-data"; return req; }',
     },
-    'PREPROCESSING_HOOKS': [
-        'drf_spectacular.hooks.preprocess_exclude_path_format',
-    ],
-    'POSTPROCESSING_HOOKS': [
-        'drf_spectacular.hooks.postprocess_schema_enums',
-    ],
 }
 
+# ... existing code ...
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Auth settings
+AUTH_BASE_URL = os.getenv('AUTH_BASE_URL', 'https://auth.uzswlu.uz')
+AUTH_TIMEOUT = int(os.getenv('AUTH_TIMEOUT', '10'))
+AUTH_CACHE_TIMEOUT = int(os.getenv('AUTH_CACHE_TIMEOUT', '300'))  # 5 minut
+
+# Cache settings for auth
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:8001',
-    
+    'https://auth.uzswlu.uz',
 ]
