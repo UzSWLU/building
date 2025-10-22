@@ -1,9 +1,12 @@
 #!/bin/bash
 
-# Production Deployment Script for RTTM Django Project
-# Usage: ./deploy.sh [environment]
+# RTTM Building API Deployment Script
+# For server: 172.22.0.19
+# Domain: building.swagger.uzswlu.uz
 
 set -e
+
+echo "🚀 Starting RTTM Building API deployment..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -11,84 +14,199 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Default environment
-ENVIRONMENT=${1:-production}
+# Configuration
+PROJECT_DIR="/opt/building"
+DOMAIN="building.swagger.uzswlu.uz"
+BACKUP_DIR="/opt/backups/building"
 
-echo -e "${GREEN}🚀 Starting deployment for environment: $ENVIRONMENT${NC}"
+# Function to print colored output
+print_status() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
 
-# Check if Docker is installed
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Check if running as root
+if [ "$EUID" -ne 0 ]; then
+    print_error "Please run as root"
+    exit 1
+fi
+
+# Create project directory if it doesn't exist
+if [ ! -d "$PROJECT_DIR" ]; then
+    print_status "Creating project directory: $PROJECT_DIR"
+    mkdir -p "$PROJECT_DIR"
+fi
+
+# Create backup directory
+if [ ! -d "$BACKUP_DIR" ]; then
+    print_status "Creating backup directory: $BACKUP_DIR"
+    mkdir -p "$BACKUP_DIR"
+fi
+
+# Backup current deployment
+if [ -d "$PROJECT_DIR" ] && [ "$(ls -A $PROJECT_DIR)" ]; then
+    print_status "Creating backup of current deployment..."
+    BACKUP_NAME="building-backup-$(date +%Y%m%d-%H%M%S)"
+    cp -r "$PROJECT_DIR" "$BACKUP_DIR/$BACKUP_NAME"
+    print_status "Backup created: $BACKUP_DIR/$BACKUP_NAME"
+fi
+
+# Install Docker if not installed
 if ! command -v docker &> /dev/null; then
-    echo -e "${RED}❌ Docker is not installed. Please install Docker first.${NC}"
-    exit 1
+    print_status "Installing Docker..."
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sh get-docker.sh
+    systemctl start docker
+    systemctl enable docker
+    rm get-docker.sh
 fi
 
-# Check if Docker Compose is installed
-if ! command -v docker compose &> /dev/null; then
-    echo -e "${RED}❌ Docker Compose is not installed. Please install Docker Compose first.${NC}"
-    exit 1
+# Install Docker Compose if not installed
+if ! command -v docker-compose &> /dev/null; then
+    print_status "Installing Docker Compose..."
+    curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
 fi
 
-# Check if .env.prod exists
+# Install Git if not installed
+if ! command -v git &> /dev/null; then
+    print_status "Installing Git..."
+    yum install -y git || apt-get update && apt-get install -y git
+fi
+
+# Clone or update repository
+if [ ! -d "$PROJECT_DIR/.git" ]; then
+    print_status "Cloning repository..."
+    git clone https://github.com/a-d-sh/building.git "$PROJECT_DIR"
+else
+    print_status "Updating repository..."
+    cd "$PROJECT_DIR"
+    git pull origin main
+fi
+
+cd "$PROJECT_DIR"
+
+# Create environment file if it doesn't exist
 if [ ! -f ".env.prod" ]; then
-    echo -e "${YELLOW}⚠️  .env.prod file not found. Creating from example...${NC}"
-    if [ -f "env.prod.example" ]; then
-        cp env.prod.example .env.prod
-        echo -e "${YELLOW}📝 Please edit .env.prod with your production values before continuing.${NC}"
-        echo -e "${YELLOW}   Press Enter when ready to continue...${NC}"
-        read
-    else
-        echo -e "${RED}❌ env.prod.example file not found. Please create .env.prod manually.${NC}"
-        exit 1
-    fi
+    print_warning "Creating .env.prod from example..."
+    cp env.prod.example .env.prod
+    print_warning "Please edit .env.prod with your production values!"
 fi
 
-# Create necessary directories
-echo -e "${GREEN}📁 Creating necessary directories...${NC}"
-mkdir -p logs
+# Create SSL directory
 mkdir -p ssl
-mkdir -p staticfiles
-mkdir -p media
+
+# Generate self-signed certificate if no SSL certificate exists
+if [ ! -f "ssl/cert.pem" ] || [ ! -f "ssl/key.pem" ]; then
+    print_warning "Generating self-signed SSL certificate..."
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout ssl/key.pem \
+        -out ssl/cert.pem \
+        -subj "/C=UZ/ST=Tashkent/L=Tashkent/O=UZSWLU/OU=IT/CN=$DOMAIN"
+fi
 
 # Stop existing containers
-echo -e "${GREEN}🛑 Stopping existing containers...${NC}"
-docker compose -f docker-compose.prod.yml down
+print_status "Stopping existing containers..."
+docker-compose -f docker-compose.prod.yml down || true
 
-# Remove old images (optional)
-echo -e "${GREEN}🧹 Cleaning up old images...${NC}"
-docker system prune -f
-
-# Build and start services
-echo -e "${GREEN}🔨 Building and starting services...${NC}"
-docker compose -f docker-compose.prod.yml up --build -d
+# Build and start containers
+print_status "Building and starting containers..."
+docker-compose -f docker-compose.prod.yml build --no-cache
+docker-compose -f docker-compose.prod.yml up -d
 
 # Wait for database to be ready
-echo -e "${GREEN}⏳ Waiting for database to be ready...${NC}"
+print_status "Waiting for database to be ready..."
 sleep 10
 
 # Run migrations
-echo -e "${GREEN}🗄️  Running database migrations...${NC}"
-docker compose -f docker-compose.prod.yml exec web python manage.py migrate
-
-# Create superuser (optional)
-echo -e "${YELLOW}👤 Do you want to create a superuser? (y/n)${NC}"
-read -r response
-if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-    docker compose -f docker-compose.prod.yml exec web python manage.py createsuperuser
-fi
+print_status "Running database migrations..."
+docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
 
 # Collect static files
-echo -e "${GREEN}📦 Collecting static files...${NC}"
-docker compose -f docker-compose.prod.yml exec web python manage.py collectstatic --noinput
+print_status "Collecting static files..."
+docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
 
-# Check if services are running
-echo -e "${GREEN}🔍 Checking service status...${NC}"
-docker compose -f docker-compose.prod.yml ps
+# Create superuser if it doesn't exist
+print_status "Creating superuser..."
+docker-compose -f docker-compose.prod.yml exec -T web python manage.py shell -c "
+from django.contrib.auth import get_user_model
+User = get_user_model()
+if not User.objects.filter(username='admin').exists():
+    User.objects.create_superuser('admin', 'admin@uzswlu.uz', 'admin123')
+    print('Superuser created: admin/admin123')
+else:
+    print('Superuser already exists')
+"
 
-# Show logs
-echo -e "${GREEN}📋 Recent logs:${NC}"
-docker compose -f docker-compose.prod.yml logs --tail=20
+# Setup firewall rules
+print_status "Configuring firewall..."
+if command -v ufw &> /dev/null; then
+    ufw allow 80
+    ufw allow 443
+    ufw allow 22
+elif command -v firewall-cmd &> /dev/null; then
+    firewall-cmd --permanent --add-port=80/tcp
+    firewall-cmd --permanent --add-port=443/tcp
+    firewall-cmd --permanent --add-port=22/tcp
+    firewall-cmd --reload
+fi
 
-echo -e "${GREEN}✅ Deployment completed successfully!${NC}"
-echo -e "${GREEN}🌐 Your application should be available at: http://localhost${NC}"
-echo -e "${GREEN}📊 To view logs: docker-compose -f docker-compose.prod.yml logs -f${NC}"
-echo -e "${GREEN}🛑 To stop: docker-compose -f docker-compose.prod.yml down${NC}"
+# Setup systemd service for auto-start
+print_status "Setting up systemd service..."
+cat > /etc/systemd/system/building-api.service << EOF
+[Unit]
+Description=RTTM Building API
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=$PROJECT_DIR
+ExecStart=/usr/local/bin/docker-compose -f docker-compose.prod.yml up -d
+ExecStop=/usr/local/bin/docker-compose -f docker-compose.prod.yml down
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable building-api.service
+
+# Health check
+print_status "Performing health check..."
+sleep 5
+
+if curl -f http://localhost/health/ > /dev/null 2>&1; then
+    print_status "✅ Health check passed!"
+else
+    print_error "❌ Health check failed!"
+    print_status "Container logs:"
+    docker-compose -f docker-compose.prod.yml logs web
+    exit 1
+fi
+
+# Final status
+print_status "🎉 Deployment completed successfully!"
+print_status "🌐 Application URL: https://$DOMAIN"
+print_status "📚 Swagger UI: https://$DOMAIN"
+print_status "🔧 Admin Panel: https://$DOMAIN/admin"
+print_status "💚 Health Check: https://$DOMAIN/health/"
+
+# Show container status
+print_status "📊 Container Status:"
+docker-compose -f docker-compose.prod.yml ps
+
+echo ""
+print_status "🔑 Default Admin Credentials:"
+print_status "   Username: admin"
+print_status "   Password: admin123"
+print_warning "   Please change the default password!"

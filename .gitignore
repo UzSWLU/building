@@ -128,29 +128,34 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Production files
-.env.prod
-.env.production
-logs/
-ssl/
-staticfiles/
+# Django specific
 media/
+staticfiles/
+static/
+
+# Environment files
+.env.prod
+.env.local
+.env.development
+
+# SSL certificates
+ssl/
+*.pem
+*.key
+*.crt
+
+# Logs
+logs/
 *.log
 
-# IDE files
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
-# OS files
+# OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
 # Docker
@@ -159,4 +164,3 @@ Thumbs.db
 # Backup files
 *.bak
 *.backup
-*.old
