@@ -68,8 +68,22 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
            script: |
-             cd /opt/building
+             cd /var/www/building-api
              git pull origin main
+             
+             # Environment variables'ni sozlash
+             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" > .env.prod
+             echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env.prod
+             echo "DJANGO_DEBUG=0" >> .env.prod
+             echo "DJANGO_ALLOWED_HOSTS=building.swagger.uzswlu.uz" >> .env.prod
+             echo "POSTGRES_DB=building" >> .env.prod
+             echo "POSTGRES_USER=building" >> .env.prod
+             echo "POSTGRES_HOST=db" >> .env.prod
+             echo "POSTGRES_PORT=5432" >> .env.prod
+             echo "AUTH_BASE_URL=https://auth.uzswlu.uz" >> .env.prod
+             echo "AUTH_TIMEOUT=10" >> .env.prod
+             echo "AUTH_CACHE_TIMEOUT=300" >> .env.prod
+             
              docker-compose -f docker-compose.prod.yml down
              docker-compose -f docker-compose.prod.yml build --no-cache
              docker-compose -f docker-compose.prod.yml up -d
