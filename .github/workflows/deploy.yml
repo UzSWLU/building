@@ -443,10 +443,10 @@ jobs:
            echo "🔧 Creating server-level Nginx configuration for api.uzswlu.uz..."
            
            # Create SSL certificate directory with proper permissions
-           mkdir -p /etc/nginx/ssl
+           if [ ! -d "/etc/nginx/ssl" ]; then
+             mkdir -p /etc/nginx/ssl
+           fi
            mkdir -p /etc/nginx/ssl/api.uzswlu.uz
-           chmod 755 /etc/nginx/ssl
-           chmod 755 /etc/nginx/ssl/api.uzswlu.uz
            
            # Copy SSL certificates
            cp /var/www/sertifikat/STAR25_uzswlu_uz.crt /etc/nginx/ssl/api.uzswlu.uz/
