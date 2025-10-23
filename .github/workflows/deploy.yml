@@ -222,25 +222,22 @@ jobs:
           echo "✅ Environment configured:"
           cat .env.prod
 
-      - name: 🐳 Build and deploy
+      - name: 🐳 Quick deploy
         run: |
           cd /var/www/building-api
 
-          echo "🛑 Stopping existing containers..."
-          docker-compose -f docker-compose.prod.yml down -v --remove-orphans
+          echo "🛑 Force stopping all containers..."
+          docker stop $(docker ps -aq) 2>/dev/null || true
+          docker rm $(docker ps -aq) 2>/dev/null || true
           
-          # Wait for ports to be released
-          echo "⏳ Waiting for ports to be released..."
-          sleep 10
-
-          echo "🔨 Building new containers..."
-          docker-compose -f docker-compose.prod.yml build --no-cache
+          echo "🔨 Building only web container..."
+          docker-compose -f docker-compose.prod.yml build web
 
           echo "🚀 Starting services..."
           docker-compose -f docker-compose.prod.yml up -d
 
-          echo "⏳ Waiting for services to start..."
-          sleep 30
+          echo "⏳ Quick wait..."
+          sleep 15
 
       - name: 🗄️ Run database migrations
         run: |
