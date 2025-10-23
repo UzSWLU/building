@@ -443,86 +443,86 @@ jobs:
            echo "🔧 Creating server-level Nginx configuration for api.uzswlu.uz..."
            
            # Create SSL certificate directory with proper permissions
-           sudo mkdir -p /etc/nginx/ssl/api.uzswlu.uz
+           mkdir -p /etc/nginx/ssl/api.uzswlu.uz
            
-           # Copy SSL certificates with sudo
-           sudo cp /var/www/sertifikat/STAR25_uzswlu_uz.crt /etc/nginx/ssl/api.uzswlu.uz/
-           sudo cp /var/www/sertifikat/STAR25_uzswlu_uz.key /etc/nginx/ssl/api.uzswlu.uz/
-           sudo chmod 644 /etc/nginx/ssl/api.uzswlu.uz/STAR25_uzswlu_uz.crt
-           sudo chmod 600 /etc/nginx/ssl/api.uzswlu.uz/STAR25_uzswlu_uz.key
+           # Copy SSL certificates
+           cp /var/www/sertifikat/STAR25_uzswlu_uz.crt /etc/nginx/ssl/api.uzswlu.uz/
+           cp /var/www/sertifikat/STAR25_uzswlu_uz.key /etc/nginx/ssl/api.uzswlu.uz/
+           chmod 644 /etc/nginx/ssl/api.uzswlu.uz/STAR25_uzswlu_uz.crt
+           chmod 600 /etc/nginx/ssl/api.uzswlu.uz/STAR25_uzswlu_uz.key
            
            # Create Nginx configuration using echo commands
-           sudo echo "# HTTP -> HTTPS redirect" > /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "server {" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    listen 80;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    server_name api.uzswlu.uz;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    return 301 https://\$server_name\$request_uri;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "}" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "# HTTPS server" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "server {" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    listen 443 ssl http2;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    server_name api.uzswlu.uz;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    # SSL Configuration" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    ssl_certificate /etc/nginx/ssl/api.uzswlu.uz/STAR25_uzswlu_uz.crt;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    ssl_certificate_key /etc/nginx/ssl/api.uzswlu.uz/STAR25_uzswlu_uz.key;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    ssl_protocols TLSv1.2 TLSv1.3;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    ssl_ciphers HIGH:!aNULL:!MD5;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    ssl_prefer_server_ciphers on;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    ssl_session_cache shared:SSL:10m;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    ssl_session_timeout 10m;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    # Security Headers" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    add_header Strict-Transport-Security \"max-age=31536000; includeSubDomains\" always;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    add_header X-Frame-Options \"SAMEORIGIN\" always;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    add_header X-Content-Type-Options \"nosniff\" always;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    add_header X-XSS-Protection \"1; mode=block\" always;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    add_header Referrer-Policy \"no-referrer-when-downgrade\" always;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    # Client max body size" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    client_max_body_size 20M;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    # Proxy to Building Nginx (port 5001)" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    location / {" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_pass http://127.0.0.1:5001;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_set_header Host \$host;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_set_header X-Real-IP \$remote_addr;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_set_header X-Forwarded-Proto \$scheme;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_redirect off;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        # Timeouts" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_connect_timeout 30s;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_send_timeout 30s;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_read_timeout 30s;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        # Buffering" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_buffering on;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_buffer_size 4k;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_buffers 8 4k;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_busy_buffers_size 8k;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    }" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    # Health check endpoint" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    location /api/health {" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_pass http://127.0.0.1:5001;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        access_log off;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    }" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    # API documentation" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    location /api-docs {" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        proxy_pass http://127.0.0.1:5001;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        expires 1y;" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "        add_header Cache-Control \"public, immutable\";" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "    }" >> /etc/nginx/sites-available/api.uzswlu.uz
-           sudo echo "}" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "# HTTP -> HTTPS redirect" > /etc/nginx/sites-available/api.uzswlu.uz
+           echo "server {" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    listen 80;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    server_name api.uzswlu.uz;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    return 301 https://\$server_name\$request_uri;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "}" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "# HTTPS server" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "server {" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    listen 443 ssl http2;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    server_name api.uzswlu.uz;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    # SSL Configuration" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    ssl_certificate /etc/nginx/ssl/api.uzswlu.uz/STAR25_uzswlu_uz.crt;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    ssl_certificate_key /etc/nginx/ssl/api.uzswlu.uz/STAR25_uzswlu_uz.key;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    ssl_protocols TLSv1.2 TLSv1.3;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    ssl_ciphers HIGH:!aNULL:!MD5;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    ssl_prefer_server_ciphers on;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    ssl_session_cache shared:SSL:10m;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    ssl_session_timeout 10m;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    # Security Headers" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    add_header Strict-Transport-Security \"max-age=31536000; includeSubDomains\" always;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    add_header X-Frame-Options \"SAMEORIGIN\" always;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    add_header X-Content-Type-Options \"nosniff\" always;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    add_header X-XSS-Protection \"1; mode=block\" always;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    add_header Referrer-Policy \"no-referrer-when-downgrade\" always;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    # Client max body size" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    client_max_body_size 20M;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    # Proxy to Building Nginx (port 5001)" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    location / {" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_pass http://127.0.0.1:5001;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_set_header Host \$host;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_set_header X-Real-IP \$remote_addr;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_set_header X-Forwarded-Proto \$scheme;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_redirect off;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        # Timeouts" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_connect_timeout 30s;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_send_timeout 30s;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_read_timeout 30s;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        # Buffering" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_buffering on;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_buffer_size 4k;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_buffers 8 4k;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_busy_buffers_size 8k;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    }" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    # Health check endpoint" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    location /api/health {" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_pass http://127.0.0.1:5001;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        access_log off;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    }" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    # API documentation" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    location /api-docs {" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        proxy_pass http://127.0.0.1:5001;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        expires 1y;" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "        add_header Cache-Control \"public, immutable\";" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "    }" >> /etc/nginx/sites-available/api.uzswlu.uz
+           echo "}" >> /etc/nginx/sites-available/api.uzswlu.uz
            
            # Enable site
-           sudo ln -sf /etc/nginx/sites-available/api.uzswlu.uz /etc/nginx/sites-enabled/
+           ln -sf /etc/nginx/sites-available/api.uzswlu.uz /etc/nginx/sites-enabled/
            
            # Test and reload Nginx
-           sudo nginx -t && sudo nginx -s reload
+           nginx -t && nginx -s reload
            
            echo "✅ Server-level Nginx configured for api.uzswlu.uz"
 
