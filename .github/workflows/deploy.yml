@@ -243,6 +243,12 @@ jobs:
           echo "🛑 Removing building-api volumes..."
           docker volume ls --filter "name=building" --format "{{.Name}}" | xargs -r docker volume rm || true
           
+          # Remove specific building-api volumes
+          echo "🛑 Removing specific building-api volumes..."
+          docker volume rm building-api_db_data 2>/dev/null || true
+          docker volume rm building-api_static_volume 2>/dev/null || true
+          docker volume rm building-api_media_volume 2>/dev/null || true
+          
           # Remove only building-api related networks
           echo "🛑 Removing building-api networks..."
           docker network ls --filter "name=building" --format "{{.Name}}" | xargs -r docker network rm || true
