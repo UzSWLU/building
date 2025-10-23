@@ -222,26 +222,39 @@ jobs:
           echo "✅ Environment configured:"
           cat .env.prod
 
-      - name: 🐳 Quick deploy
+      - name: 🐳 Complete deploy
         run: |
           cd /var/www/building-api
 
-          echo "🛑 Force stopping all containers..."
-          docker-compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
-          docker stop $(docker ps -q) 2>/dev/null || true
-          docker rm $(docker ps -aq) 2>/dev/null || true
+          echo "🔍 Checking current containers..."
+          docker-compose -f docker-compose.prod.yml ps || true
           
-          echo "⏳ Waiting for ports to be released..."
-          sleep 5
+          echo "🛑 Stopping all containers properly..."
+          docker-compose -f docker-compose.prod.yml down -v --remove-orphans || true
           
-          echo "🔨 Building only web container..."
+          echo "🔍 Checking for any remaining containers..."
+          docker ps -a || true
+          
+          echo "🛑 Force removing any remaining containers..."
+          docker container prune -f || true
+          
+          echo "🔍 Checking port 5001 usage..."
+          netstat -tulpn | grep :5001 || echo "Port 5001 is free"
+          
+          echo "⏳ Waiting for complete cleanup..."
+          sleep 10
+          
+          echo "🔨 Building web container..."
           docker-compose -f docker-compose.prod.yml build web
 
           echo "🚀 Starting services..."
           docker-compose -f docker-compose.prod.yml up -d
 
-          echo "⏳ Quick wait..."
-          sleep 15
+          echo "⏳ Waiting for services to start..."
+          sleep 20
+          
+          echo "🔍 Checking final container status..."
+          docker-compose -f docker-compose.prod.yml ps
 
       - name: 🗄️ Run database migrations
         run: |
