@@ -3,6 +3,7 @@
 ## 📋 Muammo
 
 Deploy workflow da `sudo` komandasi ishlamaydi:
+
 ```
 sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper
 ```
@@ -50,16 +51,16 @@ deploy:
   runs-on: [self-hosted, Linux, X64]
   needs: test
   timeout-minutes: 10
-  
+
   steps:
     - name: 📥 Pull latest code
       run: |
         cd /var/www/building-api
-        
+
         # Fix git ownership and permissions
         echo "🔧 Fixing git ownership and permissions..."
         git config --global --add safe.directory /var/www/building-api
-        
+
         # Fix git directory permissions (root user)
         chown -R deploy:deploy /var/www/building-api/.git
         chmod -R 755 /var/www/building-api/.git

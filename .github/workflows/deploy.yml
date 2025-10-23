@@ -124,6 +124,10 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     needs: test
     timeout-minutes: 10
+    # Run as root user to avoid permission issues
+    container: 
+      image: ubuntu:22.04
+      options: --user root
 
     steps:
       - name: 📥 Pull latest code
@@ -134,8 +138,13 @@ jobs:
           echo "🔧 Fixing git ownership and permissions..."
           git config --global --add safe.directory /var/www/building-api
           
-          # Try to fix permissions without sudo
-          chmod -R 755 .git 2>/dev/null || echo "⚠️ Could not change git permissions, continuing..."
+          # Fix permissions for entire directory
+          echo "🔧 Fixing directory permissions..."
+          chmod -R 755 . 2>/dev/null || echo "⚠️ Could not change directory permissions, continuing..."
+          
+          # Ensure deploy user owns all files
+          echo "🔧 Fixing file ownership..."
+          chown -R deploy:deploy . 2>/dev/null || echo "⚠️ Could not change file ownership, continuing..."
 
           echo "📥 Pulling latest code..."
           git fetch origin main
