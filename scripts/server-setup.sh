@@ -98,9 +98,9 @@ server {
     listen 443 ssl http2;
     server_name api.uzswlu.uz;
     
-    # SSL Configuration (will be updated by certbot)
-    ssl_certificate /etc/letsencrypt/live/api.uzswlu.uz/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.uzswlu.uz/privkey.pem;
+    # SSL Configuration (using existing certificates)
+    ssl_certificate /etc/nginx/ssl/STAR25_uzswlu_uz.crt;
+    ssl_certificate_key /etc/nginx/ssl/STAR25_uzswlu_uz.key;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
     ssl_prefer_server_ciphers off;
@@ -163,15 +163,15 @@ mkdir -p /var/www/html
 
 echo "✅ Nginx configuration created for api.uzswlu.uz"
 
-# Install SSL certificate with Let's Encrypt
-echo "🔒 Installing SSL certificate with Let's Encrypt..."
-certbot --nginx -d api.uzswlu.uz --non-interactive --agree-tos --email admin@uzswlu.uz --redirect
-
-# Setup automatic certificate renewal
-echo "🔄 Setting up automatic certificate renewal..."
-(crontab -l 2>/dev/null; echo "0 12 * * * /usr/bin/certbot renew --quiet") | crontab -
-
-echo "✅ SSL certificate installed and auto-renewal configured"
+# Use existing SSL certificates from /var/www/sertifikat
+echo "🔒 Using existing SSL certificates..."
+if [ -d "/var/www/sertifikat" ]; then
+  echo "✅ SSL certificates directory found: /var/www/sertifikat"
+  ls -la /var/www/sertifikat/
+else
+  echo "⚠️ SSL certificates directory not found: /var/www/sertifikat"
+  echo "Please ensure SSL certificates are available in /var/www/sertifikat/"
+fi
 
 # Start and enable services
 echo "🚀 Starting services..."
