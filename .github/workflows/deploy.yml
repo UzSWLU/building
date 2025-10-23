@@ -228,22 +228,22 @@ jobs:
 
           echo "🔍 Checking current containers..."
           docker-compose -f docker-compose.prod.yml ps || true
-          
+
           echo "🛑 Stopping all containers properly..."
           docker-compose -f docker-compose.prod.yml down -v --remove-orphans || true
-          
+
           echo "🔍 Checking for any remaining containers..."
           docker ps -a || true
-          
+
           echo "🛑 Force removing any remaining containers..."
           docker container prune -f || true
-          
+
           echo "🔍 Checking port 5001 usage..."
           netstat -tulpn | grep :5001 || echo "Port 5001 is free"
-          
+
           echo "⏳ Waiting for complete cleanup..."
           sleep 10
-          
+
           echo "🔨 Building web container..."
           docker-compose -f docker-compose.prod.yml build web
 
@@ -252,7 +252,7 @@ jobs:
 
           echo "⏳ Waiting for services to start..."
           sleep 20
-          
+
           echo "🔍 Checking final container status..."
           docker-compose -f docker-compose.prod.yml ps
 
@@ -260,8 +260,19 @@ jobs:
         run: |
           cd /var/www/building-api
           echo "🗄️ Running database migrations..."
+          
+          echo "🔍 Checking database container status..."
+          docker-compose -f docker-compose.prod.yml ps
+          
+          echo "⏳ Waiting for database to be ready..."
+          sleep 30
+          
+          echo "🔍 Checking database container again..."
+          docker-compose -f docker-compose.prod.yml ps
+          
+          echo "🗄️ Running migrations..."
           docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
-
+          
           echo "📊 Creating superuser if not exists..."
           docker-compose -f docker-compose.prod.yml exec -T web python manage.py shell -c "
           from django.contrib.auth import get_user_model
