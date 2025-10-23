@@ -45,7 +45,14 @@ class APITestCase(APITestCase):
         """Test health endpoint"""
         response = self.client.get('/health/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('status', response.data)
+        # Check if response is JSON and contains status
+        if hasattr(response, 'data'):
+            self.assertIn('status', response.data)
+        else:
+            # For JsonResponse, check the content
+            import json
+            content = json.loads(response.content)
+            self.assertIn('status', content)
     
     def test_api_schema_endpoint(self):
         """Test API schema endpoint"""

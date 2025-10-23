@@ -2,16 +2,16 @@ name: 🚀 Deploy to Production
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths-ignore:
-      - '**.md'
-      - 'docs/**'
+      - "**.md"
+      - "docs/**"
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Deployment environment'
+        description: "Deployment environment"
         required: true
-        default: 'production'
+        default: "production"
         type: choice
         options:
           - production
@@ -76,7 +76,7 @@ jobs:
             echo "Waiting for PostgreSQL..."
             sleep 2
           done
-          
+
           # Check if database exists, create if not
           if PGPASSWORD=building psql -h localhost -U building -lqt | cut -d \| -f 1 | grep -qw building_test; then
             echo "✅ Test database already exists"
@@ -124,16 +124,16 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     needs: test
     timeout-minutes: 10
-    
+
     steps:
       - name: 📥 Pull latest code
         run: |
           cd /var/www/building-api
-          
+
           # Fix git ownership issue
           echo "🔧 Fixing git ownership..."
           git config --global --add safe.directory /var/www/building-api
-          
+
           echo "📥 Pulling latest code..."
           git fetch origin main
           git reset --hard origin/main
@@ -141,13 +141,13 @@ jobs:
       - name: 🔧 Update environment variables
         run: |
           cd /var/www/building-api
-          
+
           echo "🔍 Checking .env.production..."
           if [ ! -f .env.production ]; then
             echo "📝 Creating .env.production from template..."
             cp env.prod.example .env.production
           fi
-          
+
           # Create complete environment file
           echo "# Production Environment Variables for Building API" > .env.production
           echo "" >> .env.production
@@ -176,23 +176,23 @@ jobs:
           echo "SERVER_HOST=172.22.0.19" >> .env.production
           echo "SERVER_USER=root" >> .env.production
           echo "SERVER_PORT=22" >> .env.production
-          
+
           echo "✅ Environment configured:"
           cat .env.production
 
       - name: 🐳 Build and deploy
         run: |
           cd /var/www/building-api
-          
+
           echo "🛑 Stopping existing containers..."
           docker-compose -f docker-compose.prod.yml down -v
-          
+
           echo "🔨 Building new containers..."
           docker-compose -f docker-compose.prod.yml build --no-cache
-          
+
           echo "🚀 Starting services..."
           docker-compose -f docker-compose.prod.yml up -d
-          
+
           echo "⏳ Waiting for services to start..."
           sleep 30
 
@@ -201,7 +201,7 @@ jobs:
           cd /var/www/building-api
           echo "🗄️ Running database migrations..."
           docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
-          
+
           echo "📊 Creating superuser if not exists..."
           docker-compose -f docker-compose.prod.yml exec -T web python manage.py shell -c "
           from django.contrib.auth import get_user_model
@@ -223,23 +223,23 @@ jobs:
         run: |
           cd /var/www/building-api
           echo "🏥 Performing health checks..."
-          
+
           # Wait for services to be ready
           sleep 10
-          
+
           # Check container status
           echo "📊 Container Status:"
           docker-compose -f docker-compose.prod.yml ps
-          
+
           # Test API endpoints
           echo "🔍 Testing API endpoints..."
-          
+
           # Health check (local)
           curl -f http://localhost:5001/health/ || echo "⚠️ Health check failed"
-          
+
           # Swagger UI (local)
           curl -f http://localhost:5001/ || echo "⚠️ Swagger UI check failed"
-          
+
           # API schema (local)
           curl -f http://localhost:5001/api/schema/ || echo "⚠️ API schema check failed"
 
