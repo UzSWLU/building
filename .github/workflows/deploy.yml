@@ -439,6 +439,7 @@ jobs:
           # Note: Server-level Nginx configuration should be done manually on the server
           echo "ℹ️ Server-level Nginx configuration:"
           echo "To configure api.uzswlu.uz -> port 5001, run on server:"
+          echo ""
           echo "sudo cat > /etc/nginx/sites-available/api.uzswlu.uz << 'EOF'"
           echo "server {"
           echo "    listen 80;"
@@ -449,11 +450,18 @@ jobs:
           echo "        proxy_set_header X-Real-IP \$remote_addr;"
           echo "        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;"
           echo "        proxy_set_header X-Forwarded-Proto \$scheme;"
+          echo "        proxy_redirect off;"
+          echo "        proxy_connect_timeout 30s;"
+          echo "        proxy_send_timeout 30s;"
+          echo "        proxy_read_timeout 30s;"
           echo "    }"
           echo "}"
           echo "EOF"
+          echo ""
           echo "sudo ln -sf /etc/nginx/sites-available/api.uzswlu.uz /etc/nginx/sites-enabled/"
           echo "sudo nginx -t && sudo nginx -s reload"
+          echo ""
+          echo "✅ After running these commands, api.uzswlu.uz will point to port 5001"
 
       - name: ✅ Deployment success
         run: |
