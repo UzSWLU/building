@@ -400,26 +400,24 @@ jobs:
             echo "📝 Creating Nginx configuration to redirect api.uzswlu.uz to port 5001..."
             
             # Create Nginx configuration for api.uzswlu.uz
-            cat > /etc/nginx/sites-available/api.uzswlu.uz << 'EOF'
-server {
-    listen 80;
-    server_name api.uzswlu.uz;
-    
-    location / {
-        proxy_pass http://127.0.0.1:5001;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_redirect off;
-        
-        # Timeouts
-        proxy_connect_timeout 30s;
-        proxy_send_timeout 30s;
-        proxy_read_timeout 30s;
-    }
-}
-EOF
+            echo "server {" > /etc/nginx/sites-available/api.uzswlu.uz
+            echo "    listen 80;" >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "    server_name api.uzswlu.uz;" >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "    " >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "    location / {" >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "        proxy_pass http://127.0.0.1:5001;" >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "        proxy_set_header Host \$host;" >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "        proxy_set_header X-Real-IP \$remote_addr;" >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;" >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "        proxy_set_header X-Forwarded-Proto \$scheme;" >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "        proxy_redirect off;" >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "        " >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "        # Timeouts" >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "        proxy_connect_timeout 30s;" >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "        proxy_send_timeout 30s;" >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "        proxy_read_timeout 30s;" >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "    }" >> /etc/nginx/sites-available/api.uzswlu.uz
+            echo "}" >> /etc/nginx/sites-available/api.uzswlu.uz
             
             # Enable the site
             ln -sf /etc/nginx/sites-available/api.uzswlu.uz /etc/nginx/sites-enabled/
@@ -436,26 +434,24 @@ EOF
           API_DOMAIN=$(grep "API_DOMAIN=" .env.prod | cut -d'=' -f2)
           API_PORT=$(grep "API_PORT=" .env.prod | cut -d'=' -f2)
           
-          cat > /etc/nginx/sites-available/${API_DOMAIN} << EOF
-server {
-    listen 80;
-    server_name ${API_DOMAIN};
-    
-    location / {
-        proxy_pass http://127.0.0.1:${API_PORT};
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_redirect off;
-        
-        # Timeouts
-        proxy_connect_timeout 30s;
-        proxy_send_timeout 30s;
-        proxy_read_timeout 30s;
-    }
-}
-EOF
+          echo "server {" > /etc/nginx/sites-available/${API_DOMAIN}
+          echo "    listen 80;" >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "    server_name ${API_DOMAIN};" >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "    " >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "    location / {" >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "        proxy_pass http://127.0.0.1:${API_PORT};" >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "        proxy_set_header Host \$host;" >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "        proxy_set_header X-Real-IP \$remote_addr;" >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;" >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "        proxy_set_header X-Forwarded-Proto \$scheme;" >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "        proxy_redirect off;" >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "        " >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "        # Timeouts" >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "        proxy_connect_timeout 30s;" >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "        proxy_send_timeout 30s;" >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "        proxy_read_timeout 30s;" >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "    }" >> /etc/nginx/sites-available/${API_DOMAIN}
+          echo "}" >> /etc/nginx/sites-available/${API_DOMAIN}
           
           # Enable the site
           ln -sf /etc/nginx/sites-available/${API_DOMAIN} /etc/nginx/sites-enabled/
