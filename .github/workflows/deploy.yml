@@ -199,6 +199,10 @@ jobs:
           echo "DJANGO_ALLOWED_HOSTS=api.uzswlu.uz,172.22.0.19,localhost,127.0.0.1" >> .env.prod
           echo "CSRF_TRUSTED_ORIGINS=https://front.uzswlu.uz,https://building.api.uzswlu.uz,https://api.uzswlu.uz,https://uzswlu.uz,http://localhost:3003,http://172.22.0.19:5001" >> .env.prod
           echo "" >> .env.prod
+          echo "# Domain Configuration" >> .env.prod
+          echo "API_DOMAIN=api.uzswlu.uz" >> .env.prod
+          echo "API_PORT=5001" >> .env.prod
+          echo "" >> .env.prod
           echo "# Database Settings" >> .env.prod
           echo "POSTGRES_DB=building" >> .env.prod
           echo "POSTGRES_USER=building" >> .env.prod
@@ -362,17 +366,103 @@ jobs:
           # Check DNS resolution
           echo "📡 DNS Resolution Test:"
           nslookup api.uzswlu.uz || echo "⚠️ DNS resolution failed"
-          nslookup swagger.uzswlu.uz || echo "⚠️ DNS resolution failed"
+          nslookup auth.uzswlu.uz || echo "⚠️ DNS resolution failed"
+
+          # Check server Nginx configuration
+          echo "🌐 Server Nginx Configuration:"
+          echo "📁 Sites enabled:"
+          ls -la /etc/nginx/sites-enabled/ || echo "⚠️ Could not list sites-enabled"
+          echo "📁 Sites available:"
+          ls -la /etc/nginx/sites-available/ || echo "⚠️ Could not list sites-available"
+          
+          # Check what api.uzswlu.uz currently serves
+          echo "🔍 Checking what api.uzswlu.uz currently serves:"
+          curl -s http://api.uzswlu.uz/ | head -10 || echo "⚠️ Could not get api.uzswlu.uz content"
+          
+          # Check what auth.uzswlu.uz serves
+          echo "🔍 Checking what auth.uzswlu.uz serves:"
+          curl -s http://auth.uzswlu.uz/ | head -10 || echo "⚠️ Could not get auth.uzswlu.uz content"
 
           # Check Nginx configuration
-          echo "🌐 Nginx Configuration Test:"
+          echo "🌐 Building API Nginx Configuration Test:"
           cd /var/www/building-api
           docker-compose -f docker-compose.prod.yml exec nginx nginx -t || echo "⚠️ Nginx config test failed"
 
           # Check if domain is accessible
           echo "🌍 Domain Accessibility Test:"
           curl -I http://api.uzswlu.uz/ || echo "⚠️ Domain not accessible"
-          curl -I http://swagger.uzswlu.uz/ || echo "⚠️ Base domain not accessible"
+          curl -I http://172.22.0.19:5001/ || echo "⚠️ Direct IP:port not accessible"
+          
+          # Check if we need to fix server Nginx configuration
+          echo "🔧 Checking if api.uzswlu.uz needs to be redirected to port 5001..."
+          if curl -s http://api.uzswlu.uz/ | grep -q "auth"; then
+            echo "⚠️ api.uzswlu.uz is currently serving auth-api, need to fix!"
+            echo "📝 Creating Nginx configuration to redirect api.uzswlu.uz to port 5001..."
+            
+            # Create Nginx configuration for api.uzswlu.uz
+            cat > /etc/nginx/sites-available/api.uzswlu.uz << 'EOF'
+server {
+    listen 80;
+    server_name api.uzswlu.uz;
+    
+    location / {
+        proxy_pass http://127.0.0.1:5001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_redirect off;
+        
+        # Timeouts
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 30s;
+    }
+}
+EOF
+            
+            # Enable the site
+            ln -sf /etc/nginx/sites-available/api.uzswlu.uz /etc/nginx/sites-enabled/
+            
+            # Test and reload Nginx
+            nginx -t && nginx -s reload
+            echo "✅ Nginx configuration updated for api.uzswlu.uz"
+          else
+            echo "✅ api.uzswlu.uz is already correctly configured"
+          fi
+          
+          # Always ensure API domain points to correct port
+          echo "🔧 Ensuring API domain points to correct port..."
+          API_DOMAIN=$(grep "API_DOMAIN=" .env.prod | cut -d'=' -f2)
+          API_PORT=$(grep "API_PORT=" .env.prod | cut -d'=' -f2)
+          
+          cat > /etc/nginx/sites-available/${API_DOMAIN} << EOF
+server {
+    listen 80;
+    server_name ${API_DOMAIN};
+    
+    location / {
+        proxy_pass http://127.0.0.1:${API_PORT};
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_redirect off;
+        
+        # Timeouts
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 30s;
+    }
+}
+EOF
+          
+          # Enable the site
+          ln -sf /etc/nginx/sites-available/${API_DOMAIN} /etc/nginx/sites-enabled/
+          
+          # Test and reload Nginx
+          nginx -t && nginx -s reload
+          echo "✅ Server-level Nginx configuration updated for ${API_DOMAIN} -> port ${API_PORT}"
 
       - name: ✅ Deployment success
         run: |
@@ -388,11 +478,12 @@ jobs:
           echo "🔗 Admin: http://172.22.0.19:5001/admin/"
           echo ""
           echo "🌐 Domain URLs (if DNS is configured):"
-          echo "🔗 API: http://api.uzswlu.uz/"
-          echo "🔗 Swagger UI: http://api.uzswlu.uz/"
-          echo "🔗 Health Check: http://api.uzswlu.uz/health/"
-          echo "🔗 API Schema: http://api.uzswlu.uz/api/schema/"
-          echo "🔗 Admin: http://api.uzswlu.uz/admin/"
+          API_DOMAIN=$(grep "API_DOMAIN=" .env.prod | cut -d'=' -f2)
+          echo "🔗 API: http://${API_DOMAIN}/"
+          echo "🔗 Swagger UI: http://${API_DOMAIN}/"
+          echo "🔗 Health Check: http://${API_DOMAIN}/health/"
+          echo "🔗 API Schema: http://${API_DOMAIN}/api/schema/"
+          echo "🔗 Admin: http://${API_DOMAIN}/admin/"
           echo ""
           echo "📊 Container Status:"
           cd /var/www/building-api
