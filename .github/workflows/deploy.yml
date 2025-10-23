@@ -227,7 +227,11 @@ jobs:
           cd /var/www/building-api
 
           echo "🛑 Stopping existing containers..."
-          docker-compose -f docker-compose.prod.yml down -v
+          docker-compose -f docker-compose.prod.yml down -v --remove-orphans
+          
+          # Wait for ports to be released
+          echo "⏳ Waiting for ports to be released..."
+          sleep 10
 
           echo "🔨 Building new containers..."
           docker-compose -f docker-compose.prod.yml build --no-cache
