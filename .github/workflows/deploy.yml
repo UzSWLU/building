@@ -229,46 +229,42 @@ jobs:
           echo "🔍 Checking current containers..."
           docker-compose -f docker-compose.prod.yml ps || true
 
-          echo "🛑 COMPLETE CLEANUP - Removing everything..."
+          echo "🛑 SAFE CLEANUP - Only building-api containers..."
           
-          # Stop and remove all building-api containers
+          # Stop and remove only building-api containers
           echo "🛑 Stopping building-api containers..."
           docker-compose -f docker-compose.prod.yml down -v --remove-orphans || true
           
-          # Remove all containers (not just building-api)
-          echo "🛑 Stopping ALL containers..."
-          docker stop $(docker ps -aq) 2>/dev/null || true
+          # Remove only building-api related containers
+          echo "🛑 Removing building-api containers..."
+          docker ps -a --filter "name=building-api" --format "{{.ID}}" | xargs -r docker rm -f || true
           
-          echo "🛑 Removing ALL containers..."
-          docker rm $(docker ps -aq) 2>/dev/null || true
+          # Remove only building-api related volumes
+          echo "🛑 Removing building-api volumes..."
+          docker volume ls --filter "name=building" --format "{{.Name}}" | xargs -r docker volume rm || true
           
-          echo "🛑 Removing ALL volumes..."
-          docker volume prune -f || true
-          
-          echo "🛑 Removing ALL networks..."
-          docker network prune -f || true
-          
-          echo "🛑 Removing ALL images..."
-          docker image prune -a -f || true
-          
+          # Remove only building-api related networks
+          echo "🛑 Removing building-api networks..."
+          docker network ls --filter "name=building" --format "{{.Name}}" | xargs -r docker network rm || true
+
           echo "🔍 Checking port 5001 usage..."
           netstat -tulpn | grep :5001 || echo "Port 5001 is free"
-          
+
           echo "⏳ Waiting for complete cleanup..."
           sleep 15
-          
+
           echo "🔨 Building web container..."
           docker-compose -f docker-compose.prod.yml build web
 
           echo "🗄️ Starting database first..."
           docker-compose -f docker-compose.prod.yml up -d db
-          
+
           echo "⏳ Waiting for database to initialize..."
           sleep 30
-          
+
           echo "🔍 Checking database container status..."
           docker-compose -f docker-compose.prod.yml ps db
-          
+
           echo "🚀 Starting all services..."
           docker-compose -f docker-compose.prod.yml up -d
 
