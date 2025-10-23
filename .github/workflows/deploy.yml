@@ -133,7 +133,7 @@ jobs:
           # Fix git ownership and permissions
           echo "🔧 Fixing git ownership and permissions..."
           git config --global --add safe.directory /var/www/building-api
-          
+
           # Fix git directory permissions
           sudo chown -R deploy:deploy /var/www/building-api/.git
           chmod -R 755 /var/www/building-api/.git
@@ -238,14 +238,14 @@ jobs:
           # Test API endpoints
           echo "🔍 Testing API endpoints..."
 
-          # Health check (local)
-          curl -f http://localhost:5001/health/ || echo "⚠️ Health check failed"
+          # Health check (domain)
+          curl -f https://building.swagger.uzswlu.uz/health/ || echo "⚠️ Health check failed"
 
-          # Swagger UI (local)
-          curl -f http://localhost:5001/ || echo "⚠️ Swagger UI check failed"
+          # Swagger UI (domain)
+          curl -f https://building.swagger.uzswlu.uz/ || echo "⚠️ Swagger UI check failed"
 
-          # API schema (local)
-          curl -f http://localhost:5001/api/schema/ || echo "⚠️ API schema check failed"
+          # API schema (domain)
+          curl -f https://building.swagger.uzswlu.uz/api/schema/ || echo "⚠️ API schema check failed"
 
       - name: 📝 Display logs
         if: always()
@@ -260,9 +260,11 @@ jobs:
           echo "✅ BUILDING API DEPLOYED SUCCESSFULLY!"
           echo "✅ =============================================="
           echo ""
+          echo "🌐 Production URLs:"
           echo "🔗 API: https://building.swagger.uzswlu.uz/"
           echo "🔗 Swagger UI: https://building.swagger.uzswlu.uz/"
           echo "🔗 Health Check: https://building.swagger.uzswlu.uz/health/"
+          echo "🔗 API Schema: https://building.swagger.uzswlu.uz/api/schema/"
           echo "🔗 Admin: https://building.swagger.uzswlu.uz/admin/"
           echo ""
           echo "📊 Container Status:"
