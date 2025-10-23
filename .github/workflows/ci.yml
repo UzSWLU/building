@@ -40,6 +40,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: 🗄️ Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
       - name: 🔧 Setup test environment
         run: |
           cp env.prod.example .env.test
@@ -53,21 +58,51 @@ jobs:
           echo "POSTGRES_PORT=5432" >> .env.test
           echo "AUTH_BASE_URL=https://auth.uzswlu.uz" >> .env.test
 
+      - name: 🗄️ Create test database
+        run: |
+          # Wait for PostgreSQL to be ready
+          until pg_isready -h localhost -p 5432 -U building; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+          
+          # Create test database
+          PGPASSWORD=building createdb -h localhost -U building building_test
+          
+          echo "✅ Test database created"
+
       - name: 🗄️ Run migrations
         run: python manage.py migrate
         env:
           DJANGO_SETTINGS_MODULE: project_core.settings
+          POSTGRES_DB: building_test
+          POSTGRES_USER: building
+          POSTGRES_PASSWORD: building
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
 
       - name: 🧪 Run tests
         run: |
           python manage.py test app_rttm
         env:
           DJANGO_SETTINGS_MODULE: project_core.settings
+          POSTGRES_DB: building_test
+          POSTGRES_USER: building
+          POSTGRES_PASSWORD: building
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
 
       - name: 📊 Check code quality
         run: |
           python manage.py check
           python manage.py check --deploy
+        env:
+          DJANGO_SETTINGS_MODULE: project_core.settings
+          POSTGRES_DB: building_test
+          POSTGRES_USER: building
+          POSTGRES_PASSWORD: building
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
 
   build:
     name: 🐳 Build Docker Image
