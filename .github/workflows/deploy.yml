@@ -262,16 +262,17 @@ jobs:
           netstat -tulpn | grep :5001 || echo "Port 5001 is free"
 
           echo "⏳ Waiting for complete cleanup..."
-          sleep 15
+          sleep 5
 
-          echo "🔨 Building web container..."
-          docker-compose -f docker-compose.prod.yml build web
+          echo "🔨 Building web container (with cache)..."
+          # Use cache for faster builds, only rebuild if Dockerfile changed
+          docker-compose -f docker-compose.prod.yml build --parallel web
 
           echo "🗄️ Starting database first..."
           docker-compose -f docker-compose.prod.yml up -d db
 
           echo "⏳ Waiting for database to initialize..."
-          sleep 30
+          sleep 15
 
           echo "🔍 Checking database container status..."
           docker-compose -f docker-compose.prod.yml ps db
@@ -374,11 +375,11 @@ jobs:
           ls -la /etc/nginx/sites-enabled/ || echo "⚠️ Could not list sites-enabled"
           echo "📁 Sites available:"
           ls -la /etc/nginx/sites-available/ || echo "⚠️ Could not list sites-available"
-          
+
           # Check what api.uzswlu.uz currently serves
           echo "🔍 Checking what api.uzswlu.uz currently serves:"
           curl -s http://api.uzswlu.uz/ | head -10 || echo "⚠️ Could not get api.uzswlu.uz content"
-          
+
           # Check what auth.uzswlu.uz serves
           echo "🔍 Checking what auth.uzswlu.uz serves:"
           curl -s http://auth.uzswlu.uz/ | head -10 || echo "⚠️ Could not get auth.uzswlu.uz content"
@@ -392,7 +393,7 @@ jobs:
           echo "🌍 Domain Accessibility Test:"
           curl -I http://api.uzswlu.uz/ || echo "⚠️ Domain not accessible"
           curl -I http://172.22.0.19:5001/ || echo "⚠️ Direct IP:port not accessible"
-          
+
           # Check if we need to fix server Nginx configuration
           echo "🔧 Checking if api.uzswlu.uz needs to be redirected to port 5001..."
           if curl -s http://api.uzswlu.uz/ | grep -q "auth"; then
@@ -428,12 +429,12 @@ jobs:
           else
             echo "✅ api.uzswlu.uz is already correctly configured"
           fi
-          
+
           # Always ensure API domain points to correct port
           echo "🔧 Ensuring API domain points to correct port..."
           API_DOMAIN=$(grep "API_DOMAIN=" .env.prod | cut -d'=' -f2)
           API_PORT=$(grep "API_PORT=" .env.prod | cut -d'=' -f2)
-          
+
           echo "server {" > /etc/nginx/sites-available/${API_DOMAIN}
           echo "    listen 80;" >> /etc/nginx/sites-available/${API_DOMAIN}
           echo "    server_name ${API_DOMAIN};" >> /etc/nginx/sites-available/${API_DOMAIN}
@@ -452,10 +453,10 @@ jobs:
           echo "        proxy_read_timeout 30s;" >> /etc/nginx/sites-available/${API_DOMAIN}
           echo "    }" >> /etc/nginx/sites-available/${API_DOMAIN}
           echo "}" >> /etc/nginx/sites-available/${API_DOMAIN}
-          
+
           # Enable the site
           ln -sf /etc/nginx/sites-available/${API_DOMAIN} /etc/nginx/sites-enabled/
-          
+
           # Test and reload Nginx
           nginx -t && nginx -s reload
           echo "✅ Server-level Nginx configuration updated for ${API_DOMAIN} -> port ${API_PORT}"
