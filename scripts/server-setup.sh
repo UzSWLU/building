@@ -1,0 +1,315 @@
+#!/bin/bash
+
+# Building API Server Setup Script
+# This script prepares the server for Building API deployment
+
+set -e
+
+echo "🚀 =============================================="
+echo "🚀 BUILDING API SERVER SETUP"
+echo "🚀 =============================================="
+
+# Update system packages
+echo "📦 Updating system packages..."
+apt-get update
+apt-get upgrade -y
+
+# Install required packages
+echo "📦 Installing required packages..."
+apt-get install -y \
+    curl \
+    wget \
+    git \
+    nginx \
+    certbot \
+    python3-certbot-nginx \
+    ufw \
+    htop \
+    nano \
+    unzip
+
+# Install Docker
+echo "🐳 Installing Docker..."
+if ! command -v docker &> /dev/null; then
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sh get-docker.sh
+    rm get-docker.sh
+    
+    # Add current user to docker group
+    usermod -aG docker $USER
+    
+    echo "✅ Docker installed successfully"
+else
+    echo "✅ Docker already installed"
+fi
+
+# Install Docker Compose
+echo "🐳 Installing Docker Compose..."
+if ! command -v docker-compose &> /dev/null; then
+    curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
+    
+    echo "✅ Docker Compose installed successfully"
+else
+    echo "✅ Docker Compose already installed"
+fi
+
+# Create deployment directory
+echo "📁 Creating deployment directory..."
+mkdir -p /var/www/building-api
+mkdir -p /var/www/backups/building-api
+mkdir -p /var/log/building-api
+
+# Set proper permissions
+chown -R www-data:www-data /var/www/building-api
+chown -R www-data:www-data /var/www/backups/building-api
+chown -R www-data:www-data /var/log/building-api
+
+# Configure firewall
+echo "🔥 Configuring firewall..."
+ufw --force enable
+ufw allow 22/tcp
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw allow 5001/tcp  # Building API port
+ufw allow 5443/tcp  # Building API HTTPS port
+
+# Configure Nginx
+echo "🌐 Configuring Nginx..."
+cat > /etc/nginx/sites-available/building.swagger.uzswlu.uz << 'EOF'
+server {
+    listen 80;
+    server_name building.swagger.uzswlu.uz;
+    
+    # Redirect HTTP to HTTPS
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name building.swagger.uzswlu.uz;
+    
+    # SSL configuration (self-signed for now)
+    ssl_certificate /etc/nginx/ssl/building.crt;
+    ssl_certificate_key /etc/nginx/ssl/building.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
+    
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+    
+    # Proxy to Building API
+    location / {
+        proxy_pass http://localhost:5001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 30s;
+    }
+    
+    # Static files
+    location /static/ {
+        alias /var/www/building-api/staticfiles/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    
+    # Media files
+    location /media/ {
+        alias /var/www/building-api/media/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+EOF
+
+# Enable the site
+ln -sf /etc/nginx/sites-available/building.swagger.uzswlu.uz /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+
+# Create SSL directory and generate self-signed certificate
+echo "🔐 Generating SSL certificate..."
+mkdir -p /etc/nginx/ssl
+
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/nginx/ssl/building.key \
+    -out /etc/nginx/ssl/building.crt \
+    -subj "/C=UZ/ST=Tashkent/L=Tashkent/O=UZSWLU/OU=IT/CN=building.swagger.uzswlu.uz"
+
+# Test Nginx configuration
+echo "🔍 Testing Nginx configuration..."
+nginx -t
+
+# Start and enable services
+echo "🚀 Starting services..."
+systemctl start nginx
+systemctl enable nginx
+systemctl start docker
+systemctl enable docker
+
+# Create systemd service for Building API
+echo "⚙️ Creating systemd service..."
+cat > /etc/systemd/system/building-api.service << 'EOF'
+[Unit]
+Description=Building API Docker Compose
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/var/www/building-api
+ExecStart=/usr/local/bin/docker-compose -f docker-compose.prod.yml up -d
+ExecStop=/usr/local/bin/docker-compose -f docker-compose.prod.yml down
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable building-api.service
+
+# Create log rotation configuration
+echo "📝 Configuring log rotation..."
+cat > /etc/logrotate.d/building-api << 'EOF'
+/var/log/building-api/*.log {
+    daily
+    missingok
+    rotate 52
+    compress
+    delaycompress
+    notifempty
+    create 644 www-data www-data
+    postrotate
+        systemctl reload nginx
+    endscript
+}
+EOF
+
+# Create monitoring script
+echo "📊 Creating monitoring script..."
+cat > /usr/local/bin/building-api-monitor.sh << 'EOF'
+#!/bin/bash
+
+# Building API Monitoring Script
+
+LOG_FILE="/var/log/building-api/monitor.log"
+DATE=$(date '+%Y-%m-%d %H:%M:%S')
+
+echo "[$DATE] Starting Building API monitoring..." >> $LOG_FILE
+
+# Check if containers are running
+if ! docker-compose -f /var/www/building-api/docker-compose.prod.yml ps | grep -q "Up"; then
+    echo "[$DATE] ERROR: Building API containers are not running!" >> $LOG_FILE
+    systemctl restart building-api.service
+    echo "[$DATE] Restarted Building API service" >> $LOG_FILE
+fi
+
+# Check API health
+if ! curl -f -s https://building.swagger.uzswlu.uz/health/ > /dev/null; then
+    echo "[$DATE] WARNING: Building API health check failed" >> $LOG_FILE
+fi
+
+# Check disk space
+DISK_USAGE=$(df /var/www/building-api | tail -1 | awk '{print $5}' | sed 's/%//')
+if [ $DISK_USAGE -gt 80 ]; then
+    echo "[$DATE] WARNING: Disk usage is ${DISK_USAGE}%" >> $LOG_FILE
+fi
+
+echo "[$DATE] Monitoring completed" >> $LOG_FILE
+EOF
+
+chmod +x /usr/local/bin/building-api-monitor.sh
+
+# Add monitoring to crontab
+echo "⏰ Setting up monitoring cron job..."
+(crontab -l 2>/dev/null; echo "*/5 * * * * /usr/local/bin/building-api-monitor.sh") | crontab -
+
+# Create backup script
+echo "💾 Creating backup script..."
+cat > /usr/local/bin/building-api-backup.sh << 'EOF'
+#!/bin/bash
+
+# Building API Backup Script
+
+BACKUP_DIR="/var/www/backups/building-api"
+DATE=$(date +%Y%m%d_%H%M%S)
+BACKUP_FILE="$BACKUP_DIR/backup_$DATE.sql"
+
+echo "Creating backup: $BACKUP_FILE"
+
+# Create database backup
+cd /var/www/building-api
+docker-compose -f docker-compose.prod.yml exec -T db pg_dump -U building building > "$BACKUP_FILE"
+
+# Compress backup
+gzip "$BACKUP_FILE"
+
+# Remove backups older than 7 days
+find "$BACKUP_DIR" -name "backup_*.sql.gz" -mtime +7 -delete
+
+echo "Backup completed: $BACKUP_FILE.gz"
+EOF
+
+chmod +x /usr/local/bin/building-api-backup.sh
+
+# Add backup to crontab (daily at 2 AM)
+echo "⏰ Setting up backup cron job..."
+(crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/building-api-backup.sh") | crontab -
+
+# Set up GitHub Actions runner (if needed)
+echo "🤖 Setting up GitHub Actions runner..."
+if [ ! -d "/opt/actions-runner" ]; then
+    mkdir -p /opt/actions-runner
+    cd /opt/actions-runner
+    
+    # Download runner
+    curl -o actions-runner-linux-x64-2.311.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.311.0/actions-runner-linux-x64-2.311.0.tar.gz
+    tar xzf ./actions-runner-linux-x64-2.311.0.tar.gz
+    
+    # Configure runner (this needs to be done manually with the token)
+    echo "⚠️  GitHub Actions runner downloaded but not configured."
+    echo "⚠️  Run the following commands manually to configure:"
+    echo "   cd /opt/actions-runner"
+    echo "   sudo ./config.sh --url https://github.com/yourorg/building --token YOUR_TOKEN"
+    echo "   sudo ./svc.sh install"
+    echo "   sudo ./svc.sh start"
+fi
+
+echo ""
+echo "✅ =============================================="
+echo "✅ SERVER SETUP COMPLETED SUCCESSFULLY!"
+echo "✅ =============================================="
+echo ""
+echo "📋 Next Steps:"
+echo "1. Clone your Building API repository to /var/www/building-api"
+echo "2. Configure GitHub Actions runner (if using self-hosted)"
+echo "3. Run the deployment script: ./deploy.sh"
+echo ""
+echo "🔗 Services:"
+echo "   - Nginx: systemctl status nginx"
+echo "   - Docker: systemctl status docker"
+echo "   - Building API: systemctl status building-api"
+echo ""
+echo "📊 Monitoring:"
+echo "   - Logs: tail -f /var/log/building-api/monitor.log"
+echo "   - Backups: ls -la /var/www/backups/building-api/"
+echo ""
+echo "🔐 SSL Certificate:"
+echo "   - Self-signed certificate generated"
+echo "   - For production, use Let's Encrypt:"
+echo "     certbot --nginx -d building.swagger.uzswlu.uz"
+echo ""
+echo "🌐 Domain Configuration:"
+echo "   - Add A record: building.swagger.uzswlu.uz -> $(curl -s ifconfig.me)"
+echo ""
+echo "🎉 Server is ready for Building API deployment!"

@@ -1,6 +1,20 @@
-# Building API
+# 🏢 Building API
+
+[![Deploy to Production](https://github.com/a-d-sh/building-api/actions/workflows/deploy.yml/badge.svg)](https://github.com/a-d-sh/building-api/actions/workflows/deploy.yml)
+[![CI Pipeline](https://github.com/a-d-sh/building-api/actions/workflows/ci.yml/badge.svg)](https://github.com/a-d-sh/building-api/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/docker-ready-blue)](https://www.docker.com/)
 
 Building Management Django REST API for managing buildings, rooms, devices, and maintenance requests.
+
+## ⚡ Quick Deploy
+
+**Push to `main` branch → Auto-deploy to production in ~2-3 minutes!** 🚀
+
+```bash
+git push origin main
+# ✅ GitHub Actions automatically builds and deploys!
+```
 
 ## 🚀 Features
 
@@ -13,6 +27,8 @@ Building Management Django REST API for managing buildings, rooms, devices, and 
 - 📚 Auto-generated API Documentation (Swagger UI)
 - 🐳 Docker Support
 - 🔄 CI/CD Pipeline with GitHub Actions
+- 🌐 Production-ready with SSL/HTTPS
+- 📊 Automated monitoring and backups
 
 ## 🛠️ Tech Stack
 
@@ -60,8 +76,8 @@ Building Management Django REST API for managing buildings, rooms, devices, and 
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/a-d-sh/building.git
-   cd building
+   git clone https://github.com/a-d-sh/building-api.git
+   cd building-api
    ```
 
 2. **Create environment file**
@@ -85,18 +101,38 @@ Building Management Django REST API for managing buildings, rooms, devices, and 
 
 ### Production Deployment
 
+**Automatic Deployment (Recommended):**
+
+```bash
+# Push to main branch triggers automatic deployment
+git push origin main
+```
+
+**Manual Deployment:**
+
 1. **Server Setup** (172.22.0.19)
 
    ```bash
-   # Upload deploy.sh to server
-   chmod +x deploy.sh
-   ./deploy.sh
+   # Run server setup script
+   curl -fsSL https://raw.githubusercontent.com/a-d-sh/building-api/main/scripts/server-setup.sh | bash
    ```
 
-2. **Domain Configuration**
+2. **Deploy Application**
+
+   ```bash
+   # Clone and deploy
+   cd /var/www/building-api
+   git clone https://github.com/a-d-sh/building-api.git .
+   chmod +x deploy.sh
+   ./deploy.sh production latest
+   ```
+
+3. **Domain Configuration**
    - Domain: `building.swagger.uzswlu.uz`
    - SSL: Auto-generated self-signed certificate
    - Production URL: `https://building.swagger.uzswlu.uz`
+
+📖 **Detailed setup guide**: See [GITHUB_SETUP_GUIDE.md](GITHUB_SETUP_GUIDE.md)
 
 ## 🔐 Authentication
 
@@ -134,6 +170,15 @@ GitHub Actions automatically:
 - 🔧 Builds Docker images
 - 📊 Runs database migrations
 - 🔍 Performs health checks
+- 📝 Monitors errors every 6 hours
+- 🔄 Supports full reset with confirmation
+
+### Workflows:
+
+- **CI Pipeline** (`.github/workflows/ci.yml`) - Testing and code quality
+- **Deploy Pipeline** (`.github/workflows/deploy.yml`) - Production deployment
+- **Error Monitoring** (`.github/workflows/check-errors.yml`) - Automated monitoring
+- **Full Reset** (`.github/workflows/full-reset.yml`) - Complete system reset
 
 ## 📊 Monitoring
 

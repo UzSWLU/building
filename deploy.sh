@@ -1,140 +1,120 @@
 #!/bin/bash
 
 # Building API Deployment Script
-# For server: 172.22.0.19
-# Domain: building.swagger.uzswlu.uz
+# Usage: ./deploy.sh [environment] [version]
 
 set -e
 
-echo "🚀 Starting Building API deployment..."
+ENVIRONMENT=${1:-production}
+VERSION=${2:-latest}
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# Configuration
-PROJECT_DIR="/opt/building"
-DOMAIN="building.swagger.uzswlu.uz"
-BACKUP_DIR="/opt/backups/building"
-
-# Function to print colored output
-print_status() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+echo "🚀 =============================================="
+echo "🚀 BUILDING API DEPLOYMENT"
+echo "🚀 Environment: $ENVIRONMENT"
+echo "🚀 Version: $VERSION"
+echo "🚀 =============================================="
 
 # Check if running as root
-if [ "$EUID" -ne 0 ]; then
-    print_error "Please run as root"
+if [ "$EUID" -eq 0 ]; then
+    echo "⚠️  Running as root. This is not recommended for production."
+    read -p "Continue anyway? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "❌ Deployment cancelled."
+        exit 1
+    fi
+fi
+
+# Set deployment directory
+DEPLOY_DIR="/var/www/building-api"
+BACKUP_DIR="/var/www/backups/building-api"
+
+echo "📁 Deployment directory: $DEPLOY_DIR"
+
+# Create directories if they don't exist
+sudo mkdir -p "$DEPLOY_DIR"
+sudo mkdir -p "$BACKUP_DIR"
+
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    echo "❌ Docker is not installed. Please install Docker first."
     exit 1
 fi
 
-# Create project directory if it doesn't exist
-if [ ! -d "$PROJECT_DIR" ]; then
-    print_status "Creating project directory: $PROJECT_DIR"
-    mkdir -p "$PROJECT_DIR"
-fi
-
-# Create backup directory
-if [ ! -d "$BACKUP_DIR" ]; then
-    print_status "Creating backup directory: $BACKUP_DIR"
-    mkdir -p "$BACKUP_DIR"
-fi
-
-# Backup current deployment
-if [ -d "$PROJECT_DIR" ] && [ "$(ls -A $PROJECT_DIR)" ]; then
-    print_status "Creating backup of current deployment..."
-    BACKUP_NAME="building-backup-$(date +%Y%m%d-%H%M%S)"
-    cp -r "$PROJECT_DIR" "$BACKUP_DIR/$BACKUP_NAME"
-    print_status "Backup created: $BACKUP_DIR/$BACKUP_NAME"
-fi
-
-# Install Docker if not installed
-if ! command -v docker &> /dev/null; then
-    print_status "Installing Docker..."
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sh get-docker.sh
-    systemctl start docker
-    systemctl enable docker
-    rm get-docker.sh
-fi
-
-# Install Docker Compose if not installed
+# Check if Docker Compose is installed
 if ! command -v docker-compose &> /dev/null; then
-    print_status "Installing Docker Compose..."
-    curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose
+    echo "❌ Docker Compose is not installed. Please install Docker Compose first."
+    exit 1
 fi
 
-# Install Git if not installed
-if ! command -v git &> /dev/null; then
-    print_status "Installing Git..."
-    yum install -y git || apt-get update && apt-get install -y git
-fi
+# Navigate to deployment directory
+cd "$DEPLOY_DIR"
 
-# Clone or update repository
-if [ ! -d "$PROJECT_DIR/.git" ]; then
-    print_status "Cloning repository..."
-    git clone https://github.com/a-d-sh/building.git "$PROJECT_DIR"
+echo "📥 Pulling latest code..."
+git fetch origin main
+git reset --hard origin/main
+
+echo "🔧 Setting up environment..."
+if [ ! -f .env.production ]; then
+    echo "📝 Creating .env.production from template..."
+    cp env.prod.example .env.production
+    
+    # Generate secure passwords
+    DJANGO_SECRET_KEY=$(openssl rand -base64 32)
+    POSTGRES_PASSWORD=$(openssl rand -base64 24)
+    
+    # Update environment file
+    sed -i "s/DJANGO_SECRET_KEY=.*/DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY/" .env.production
+    sed -i "s/POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$POSTGRES_PASSWORD/" .env.production
+    
+    echo "✅ Environment file created with secure passwords"
 else
-    print_status "Updating repository..."
-    cd "$PROJECT_DIR"
-    git pull origin main
+    echo "✅ Environment file already exists"
 fi
 
-cd "$PROJECT_DIR"
+# Ensure OAuth URLs are configured
+echo "🔗 Configuring OAuth URLs..."
+sed -i '/^BACKEND_URL=/d' .env.production
+sed -i '/^FRONTEND_CALLBACK_URL=/d' .env.production
+sed -i '/^# OAuth URLs/d' .env.production
 
-# Create environment file if it doesn't exist
-if [ ! -f ".env.prod" ]; then
-    print_warning "Creating .env.prod from example..."
-    cp env.prod.example .env.prod
-    print_warning "Please edit .env.prod with your production values!"
-fi
+echo "" >> .env.production
+echo "# OAuth URLs" >> .env.production
+echo "BACKEND_URL=https://auth.uzswlu.uz" >> .env.production
+echo "FRONTEND_CALLBACK_URL=https://building.swagger.uzswlu.uz/callback,http://localhost:5001/callback" >> .env.production
 
-# Create SSL directory
-mkdir -p ssl
+echo "✅ OAuth URLs configured"
 
-# Generate self-signed certificate if no SSL certificate exists
-if [ ! -f "ssl/cert.pem" ] || [ ! -f "ssl/key.pem" ]; then
-    print_warning "Generating self-signed SSL certificate..."
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -keyout ssl/key.pem \
-        -out ssl/cert.pem \
-        -subj "/C=UZ/ST=Tashkent/L=Tashkent/O=UZSWLU/OU=IT/CN=$DOMAIN"
+# Create backup before deployment
+echo "💾 Creating backup..."
+BACKUP_FILE="$BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).sql"
+if docker-compose -f docker-compose.prod.yml ps | grep -q "Up"; then
+    echo "📊 Creating database backup..."
+    docker-compose -f docker-compose.prod.yml exec -T db pg_dump -U building building > "$BACKUP_FILE" || echo "⚠️  Backup failed, continuing..."
+    echo "✅ Backup created: $BACKUP_FILE"
+else
+    echo "ℹ️  No running containers to backup"
 fi
 
 # Stop existing containers
-print_status "Stopping existing containers..."
-docker-compose -f docker-compose.prod.yml down || true
+echo "🛑 Stopping existing containers..."
+docker-compose -f docker-compose.prod.yml down -v
 
-# Build and start containers
-print_status "Building and starting containers..."
+# Build and start new containers
+echo "🔨 Building and starting containers..."
 docker-compose -f docker-compose.prod.yml build --no-cache
 docker-compose -f docker-compose.prod.yml up -d
 
-# Wait for database to be ready
-print_status "Waiting for database to be ready..."
-sleep 10
+# Wait for services to start
+echo "⏳ Waiting for services to start..."
+sleep 30
 
-# Run migrations
-print_status "Running database migrations..."
+# Run database migrations
+echo "🗄️ Running database migrations..."
 docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
 
-# Collect static files
-print_status "Collecting static files..."
-docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
-
-# Create superuser if it doesn't exist
-print_status "Creating superuser..."
+# Create superuser if not exists
+echo "👤 Creating superuser..."
 docker-compose -f docker-compose.prod.yml exec -T web python manage.py shell -c "
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -145,68 +125,62 @@ else:
     print('Superuser already exists')
 "
 
-# Setup firewall rules
-print_status "Configuring firewall..."
-if command -v ufw &> /dev/null; then
-    ufw allow 80
-    ufw allow 443
-    ufw allow 22
-elif command -v firewall-cmd &> /dev/null; then
-    firewall-cmd --permanent --add-port=80/tcp
-    firewall-cmd --permanent --add-port=443/tcp
-    firewall-cmd --permanent --add-port=22/tcp
-    firewall-cmd --reload
-fi
-
-# Setup systemd service for auto-start
-print_status "Setting up systemd service..."
-cat > /etc/systemd/system/building-api.service << EOF
-[Unit]
-Description=Building API
-Requires=docker.service
-After=docker.service
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-WorkingDirectory=$PROJECT_DIR
-ExecStart=/usr/local/bin/docker-compose -f docker-compose.prod.yml up -d
-ExecStop=/usr/local/bin/docker-compose -f docker-compose.prod.yml down
-TimeoutStartSec=0
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-systemctl daemon-reload
-systemctl enable building-api.service
+# Collect static files
+echo "📊 Collecting static files..."
+docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
 
 # Health check
-print_status "Performing health check..."
-sleep 5
+echo "🏥 Performing health checks..."
+sleep 10
 
-if curl -f http://localhost/health/ > /dev/null 2>&1; then
-    print_status "✅ Health check passed!"
-else
-    print_error "❌ Health check failed!"
-    print_status "Container logs:"
-    docker-compose -f docker-compose.prod.yml logs web
-    exit 1
-fi
-
-# Final status
-print_status "🎉 Deployment completed successfully!"
-print_status "🌐 Application URL: http://$DOMAIN:5001"
-print_status "📚 Swagger UI: http://$DOMAIN:5001"
-print_status "🔧 Admin Panel: http://$DOMAIN:5001/admin"
-print_status "💚 Health Check: http://$DOMAIN:5001/health/"
-
-# Show container status
-print_status "📊 Container Status:"
+# Check container status
+echo "📊 Container Status:"
 docker-compose -f docker-compose.prod.yml ps
 
+# Test API endpoints
+echo "🔍 Testing API endpoints..."
+
+# Health check
+if curl -f -s https://building.swagger.uzswlu.uz/health/ > /dev/null; then
+    echo "✅ Health check passed"
+else
+    echo "❌ Health check failed"
+fi
+
+# Swagger UI
+if curl -f -s https://building.swagger.uzswlu.uz/ > /dev/null; then
+    echo "✅ Swagger UI accessible"
+else
+    echo "❌ Swagger UI not accessible"
+fi
+
+# API schema
+if curl -f -s https://building.swagger.uzswlu.uz/api/schema/ > /dev/null; then
+    echo "✅ API schema accessible"
+else
+    echo "❌ API schema not accessible"
+fi
+
+# Clean up old images
+echo "🧹 Cleaning up old Docker images..."
+docker image prune -f
+
 echo ""
-print_status "🔑 Default Admin Credentials:"
-print_status "   Username: admin"
-print_status "   Password: admin123"
-print_warning "   Please change the default password!"
+echo "✅ =============================================="
+echo "✅ DEPLOYMENT COMPLETED SUCCESSFULLY!"
+echo "✅ =============================================="
+echo ""
+echo "🔗 API: https://building.swagger.uzswlu.uz/"
+echo "🔗 Swagger UI: https://building.swagger.uzswlu.uz/"
+echo "🔗 Health Check: https://building.swagger.uzswlu.uz/health/"
+echo "🔗 Admin: https://building.swagger.uzswlu.uz/admin/"
+echo ""
+echo "👤 Default Admin Credentials:"
+echo "   Username: admin"
+echo "   Password: admin123"
+echo ""
+echo "📊 Container Status:"
+docker-compose -f docker-compose.prod.yml ps
+echo ""
+echo "📝 Recent Logs:"
+docker-compose -f docker-compose.prod.yml logs --tail=20 web

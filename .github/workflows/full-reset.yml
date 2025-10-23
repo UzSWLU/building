@@ -1,139 +1,132 @@
-name: 🚀 Deploy to Production
+name: 🔴 Full Building API Reset
 
 on:
-  push:
-    branches: [ main ]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-  workflow_dispatch:
+  workflow_dispatch: # Manual trigger only
     inputs:
-      environment:
-        description: 'Deployment environment'
+      confirm:
+        description: 'Type "RESET" to confirm data deletion'
         required: true
-        default: 'production'
-        type: choice
-        options:
-          - production
-          - staging
+        default: ''
 
 jobs:
-  deploy:
-    name: 🚀 Deploy to Production
+  confirm-reset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⚠️  Validate confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "RESET" ]; then
+            echo "❌ Confirmation failed! You must type 'RESET' to proceed."
+            exit 1
+          fi
+          echo "✅ Confirmation received. Proceeding with full reset..."
+
+  full-reset:
+    needs: confirm-reset
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 10
-    
     steps:
-      - name: 📥 Pull latest code
+      - name: 📋 Display reset information
         run: |
-          cd /var/www/building-api
-          echo "📥 Pulling latest code..."
-          git fetch origin main
-          git reset --hard origin/main
+          echo "🔴 =============================================="
+          echo "🔴 FULL BUILDING API RESET"
+          echo "🔴 All data will be deleted and recreated!"
+          echo "🔴 =============================================="
 
-      - name: 🔧 Update environment variables
+      - name: 🔧 Ensure environment variables
         run: |
           cd /var/www/building-api
-          
+
           echo "🔍 Checking .env.production..."
           if [ ! -f .env.production ]; then
             echo "📝 Creating .env.production from template..."
             cp env.prod.example .env.production
           fi
-          
+
           # Ensure OAuth URLs are configured
           sed -i '/^BACKEND_URL=/d' .env.production
           sed -i '/^FRONTEND_CALLBACK_URL=/d' .env.production
           sed -i '/^# OAuth URLs/d' .env.production
-          
+
           echo "" >> .env.production
           echo "# OAuth URLs" >> .env.production
           echo "BACKEND_URL=https://auth.uzswlu.uz" >> .env.production
           echo "FRONTEND_CALLBACK_URL=https://building.swagger.uzswlu.uz/callback,http://localhost:5001/callback" >> .env.production
-          
+
           echo "✅ Environment configured:"
           grep -E "BACKEND_URL|FRONTEND_CALLBACK_URL" .env.production
 
-      - name: 🐳 Build and deploy
+      - name: 🔄 Execute full reset
         run: |
           cd /var/www/building-api
-          
-          echo "🛑 Stopping existing containers..."
-          docker-compose -f docker-compose.prod.yml down -v
-          
-          echo "🔨 Building new containers..."
-          docker-compose -f docker-compose.prod.yml build --no-cache
-          
-          echo "🚀 Starting services..."
-          docker-compose -f docker-compose.prod.yml up -d
-          
-          echo "⏳ Waiting for services to start..."
-          sleep 30
 
-      - name: 🗄️ Run database migrations
+          echo "🛑 Stopping all containers..."
+          docker-compose -f docker-compose.prod.yml down -v
+
+          echo "🗑️ Removing all volumes and images..."
+          docker volume prune -f
+          docker image prune -f
+
+          echo "🔨 Rebuilding from scratch..."
+          docker-compose -f docker-compose.prod.yml build --no-cache
+          docker-compose -f docker-compose.prod.yml up -d
+
+          echo "⏳ Waiting for services to start..."
+          sleep 60
+
+      - name: 🗄️ Initialize database
         run: |
           cd /var/www/building-api
-          echo "🗄️ Running database migrations..."
+
+          echo "🗄️ Running migrations..."
           docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
-          
-          echo "📊 Creating superuser if not exists..."
+
+          echo "👤 Creating superuser..."
           docker-compose -f docker-compose.prod.yml exec -T web python manage.py shell -c "
           from django.contrib.auth import get_user_model
           User = get_user_model()
           if not User.objects.filter(username='admin').exists():
               User.objects.create_superuser('admin', 'admin@uzswlu.uz', 'admin123')
-              print('Superuser created')
+              print('Superuser created: admin/admin123')
           else:
               print('Superuser already exists')
           "
 
-      - name: 📊 Collect static files
-        run: |
-          cd /var/www/building-api
           echo "📊 Collecting static files..."
           docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
 
-      - name: 🏥 Health check
-        run: |
-          cd /var/www/building-api
-          echo "🏥 Performing health checks..."
-          
-          # Wait for services to be ready
-          sleep 10
-          
-          # Check container status
-          echo "📊 Container Status:"
-          docker-compose -f docker-compose.prod.yml ps
-          
-          # Test API endpoints
-          echo "🔍 Testing API endpoints..."
-          
-          # Health check
-          curl -f https://building.swagger.uzswlu.uz/health/ || echo "⚠️ Health check failed"
-          
-          # Swagger UI
-          curl -f https://building.swagger.uzswlu.uz/ || echo "⚠️ Swagger UI check failed"
-          
-          # API schema
-          curl -f https://building.swagger.uzswlu.uz/api/schema/ || echo "⚠️ API schema check failed"
-
-      - name: 📝 Display logs
+      - name: 📊 Display final status
         if: always()
         run: |
-          cd /var/www/building-api
-          echo "📝 Recent application logs:"
-          docker-compose -f docker-compose.prod.yml logs --tail=50 web
+          echo ""
+          echo "📊 Container Status:"
+          docker-compose -f /var/www/building-api/docker-compose.prod.yml ps
 
-      - name: ✅ Deployment success
+      - name: 📝 Display API logs
+        if: always()
         run: |
+          echo ""
+          echo "📝 Recent API Logs:"
+          docker-compose -f /var/www/building-api/docker-compose.prod.yml logs --tail=50 web
+
+      - name: 🔍 Test API health
+        run: |
+          echo ""
+          echo "🔍 Testing API health..."
+          sleep 10
+          curl -s https://building.swagger.uzswlu.uz/health/ || echo "⚠️ Health check failed"
+
+      - name: ✅ Reset completed
+        run: |
+          echo ""
           echo "✅ =============================================="
-          echo "✅ BUILDING API DEPLOYED SUCCESSFULLY!"
+          echo "✅ FULL RESET COMPLETED SUCCESSFULLY!"
           echo "✅ =============================================="
           echo ""
           echo "🔗 API: https://building.swagger.uzswlu.uz/"
           echo "🔗 Swagger UI: https://building.swagger.uzswlu.uz/"
-          echo "🔗 Health Check: https://building.swagger.uzswlu.uz/health/"
+          echo "🔗 Health: https://building.swagger.uzswlu.uz/health/"
           echo "🔗 Admin: https://building.swagger.uzswlu.uz/admin/"
           echo ""
-          echo "📊 Container Status:"
-          docker-compose -f docker-compose.prod.yml ps
+          echo "👤 Default Admin:"
+          echo "   Username: admin"
+          echo "   Password: admin123"
