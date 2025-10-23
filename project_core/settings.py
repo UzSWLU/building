@@ -199,8 +199,4 @@ CACHES = {
     }
 }
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:3000',
-    'http://127.0.0.1:8001',
-    'https://auth.uzswlu.uz',
-]
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://front.uzswlu.uz,https://building.api.uzswlu.uz,https://api.uzswlu.uz,https://uzswlu.uz,http://localhost:3003').split(',')

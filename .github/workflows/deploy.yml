@@ -196,7 +196,8 @@ jobs:
           echo "# Django Settings" >> .env.prod
           echo "DJANGO_SECRET_KEY=django-insecure-production-secret-key-change-this-in-production" >> .env.prod
           echo "DJANGO_DEBUG=0" >> .env.prod
-          echo "DJANGO_ALLOWED_HOSTS=building.swagger.uzswlu.uz" >> .env.prod
+          echo "DJANGO_ALLOWED_HOSTS=api.uzswlu.uz,172.22.0.19,localhost,127.0.0.1" >> .env.prod
+          echo "CSRF_TRUSTED_ORIGINS=https://front.uzswlu.uz,https://building.api.uzswlu.uz,https://api.uzswlu.uz,https://uzswlu.uz,http://localhost:3003,http://172.22.0.19:5001" >> .env.prod
           echo "" >> .env.prod
           echo "# Database Settings" >> .env.prod
           echo "POSTGRES_DB=building" >> .env.prod
@@ -340,10 +341,10 @@ jobs:
 
           # Health check (Domain)
           curl -f http://api.uzswlu.uz/health/ || echo "⚠️ Health check failed"
-          
+
           # Swagger UI (Domain)
           curl -f http://api.uzswlu.uz/ || echo "⚠️ Swagger UI check failed"
-          
+
           # API schema (Domain)
           curl -f http://api.uzswlu.uz/api/schema/ || echo "⚠️ API schema check failed"
 
