@@ -65,10 +65,10 @@ jobs:
             echo "Waiting for PostgreSQL..."
             sleep 2
           done
-          
+
           # Create test database
           PGPASSWORD=building createdb -h localhost -U building building_test
-          
+
           echo "✅ Test database created"
 
       - name: 🗄️ Run migrations
