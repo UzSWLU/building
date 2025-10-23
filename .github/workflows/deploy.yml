@@ -340,10 +340,10 @@ jobs:
 
           # Health check (IP)
           curl -f http://172.22.0.19:5001/health/ || echo "⚠️ Health check failed"
-          
+
           # Swagger UI (IP)
           curl -f http://172.22.0.19:5001/ || echo "⚠️ Swagger UI check failed"
-          
+
           # API schema (IP)
           curl -f http://172.22.0.19:5001/api/schema/ || echo "⚠️ API schema check failed"
 
@@ -353,6 +353,25 @@ jobs:
           cd /var/www/building-api
           echo "📝 Recent application logs:"
           docker-compose -f docker-compose.prod.yml logs --tail=50 web
+
+      - name: 🔍 Check DNS and Nginx configuration
+        run: |
+          echo "🔍 Checking DNS and Nginx configuration..."
+          
+          # Check DNS resolution
+          echo "📡 DNS Resolution Test:"
+          nslookup building.swagger.uzswlu.uz || echo "⚠️ DNS resolution failed"
+          nslookup swagger.uzswlu.uz || echo "⚠️ DNS resolution failed"
+          
+          # Check Nginx configuration
+          echo "🌐 Nginx Configuration Test:"
+          cd /var/www/building-api
+          docker-compose -f docker-compose.prod.yml exec nginx nginx -t || echo "⚠️ Nginx config test failed"
+          
+          # Check if domain is accessible
+          echo "🌍 Domain Accessibility Test:"
+          curl -I http://building.swagger.uzswlu.uz/ || echo "⚠️ Domain not accessible"
+          curl -I http://swagger.uzswlu.uz/ || echo "⚠️ Base domain not accessible"
 
       - name: ✅ Deployment success
         run: |
@@ -366,6 +385,13 @@ jobs:
           echo "🔗 Health Check: http://172.22.0.19:5001/health/"
           echo "🔗 API Schema: http://172.22.0.19:5001/api/schema/"
           echo "🔗 Admin: http://172.22.0.19:5001/admin/"
+          echo ""
+          echo "🌐 Domain URLs (if DNS is configured):"
+          echo "🔗 API: http://building.swagger.uzswlu.uz/"
+          echo "🔗 Swagger UI: http://building.swagger.uzswlu.uz/"
+          echo "🔗 Health Check: http://building.swagger.uzswlu.uz/health/"
+          echo "🔗 API Schema: http://building.swagger.uzswlu.uz/api/schema/"
+          echo "🔗 Admin: http://building.swagger.uzswlu.uz/admin/"
           echo ""
           echo "📊 Container Status:"
           cd /var/www/building-api
