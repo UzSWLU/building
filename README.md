@@ -134,7 +134,9 @@ git push origin main
 
 📖 **Detailed setup guide**: See [GITHUB_SETUP_GUIDE.md](GITHUB_SETUP_GUIDE.md)  
 🤖 **Runner setup guide**: See [RUNNER_SETUP_GUIDE.md](RUNNER_SETUP_GUIDE.md)  
-🖥️ **Server setup guide**: See [SERVER_SETUP_GUIDE.md](SERVER_SETUP_GUIDE.md)
+🖥️ **Server setup guide**: See [SERVER_SETUP_GUIDE.md](SERVER_SETUP_GUIDE.md)  
+⚡ **Quick runner setup**: See [RUNNER_SETUP_COMMANDS.md](RUNNER_SETUP_COMMANDS.md)  
+🔄 **Existing runner setup**: See [EXISTING_RUNNER_SETUP.md](EXISTING_RUNNER_SETUP.md)
 
 ## 🔐 Authentication
 

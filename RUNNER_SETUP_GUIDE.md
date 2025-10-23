@@ -86,6 +86,7 @@ cd /opt/building-actions-runner
 ### 4.3 Token Olish
 
 GitHub da runner yaratishda token avtomatik beriladi. Ushbu token:
+
 - 1 soat amal qiladi
 - Faqat bir marta ishlatiladi
 - Runner konfiguratsiyasi uchun kerak
