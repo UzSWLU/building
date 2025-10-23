@@ -227,8 +227,12 @@ jobs:
           cd /var/www/building-api
 
           echo "🛑 Force stopping all containers..."
-          docker stop $(docker ps -aq) 2>/dev/null || true
+          docker-compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
+          docker stop $(docker ps -q) 2>/dev/null || true
           docker rm $(docker ps -aq) 2>/dev/null || true
+          
+          echo "⏳ Waiting for ports to be released..."
+          sleep 5
           
           echo "🔨 Building only web container..."
           docker-compose -f docker-compose.prod.yml build web
