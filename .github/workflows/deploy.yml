@@ -231,23 +231,32 @@ jobs:
 
           echo "🛑 Stopping all containers properly..."
           docker-compose -f docker-compose.prod.yml down -v --remove-orphans || true
-
+          
           echo "🔍 Checking for any remaining containers..."
           docker ps -a || true
-
+          
           echo "🛑 Force removing any remaining containers..."
           docker container prune -f || true
-
+          
           echo "🔍 Checking port 5001 usage..."
           netstat -tulpn | grep :5001 || echo "Port 5001 is free"
-
+          
           echo "⏳ Waiting for complete cleanup..."
           sleep 10
-
+          
           echo "🔨 Building web container..."
           docker-compose -f docker-compose.prod.yml build web
 
-          echo "🚀 Starting services..."
+          echo "🗄️ Starting database first..."
+          docker-compose -f docker-compose.prod.yml up -d db
+          
+          echo "⏳ Waiting for database to initialize..."
+          sleep 30
+          
+          echo "🔍 Checking database container status..."
+          docker-compose -f docker-compose.prod.yml ps db
+          
+          echo "🚀 Starting all services..."
           docker-compose -f docker-compose.prod.yml up -d
 
           echo "⏳ Waiting for services to start..."
@@ -260,28 +269,28 @@ jobs:
         run: |
           cd /var/www/building-api
           echo "🗄️ Running database migrations..."
-          
+
           echo "🔍 Checking database container status..."
           docker-compose -f docker-compose.prod.yml ps
-          
+
           echo "⏳ Waiting for database container to be healthy..."
-          for i in {1..30}; do
+          for i in $(seq 1 30); do
             echo "Attempt $i/30: Checking database status..."
             DB_STATUS=$(docker-compose -f docker-compose.prod.yml ps db | grep -E "(Up|healthy)" || echo "not_ready")
-            if [[ "$DB_STATUS" == *"Up"* ]]; then
+            if echo "$DB_STATUS" | grep -q "Up"; then
               echo "✅ Database container is running!"
               break
             fi
             echo "⏳ Database not ready yet, waiting 10 seconds..."
             sleep 10
           done
-          
+
           echo "🔍 Final database container status..."
           docker-compose -f docker-compose.prod.yml ps
-          
+
           echo "🗄️ Running migrations..."
           docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
-          
+
           echo "📊 Creating superuser if not exists..."
           docker-compose -f docker-compose.prod.yml exec -T web python manage.py shell -c "
           from django.contrib.auth import get_user_model
