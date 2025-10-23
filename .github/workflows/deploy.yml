@@ -364,17 +364,23 @@ jobs:
         run: |
           echo "🔍 Checking DNS and Nginx configuration..."
 
-          # Check DNS resolution
+          # Check DNS resolution (skip if tools not available)
           echo "📡 DNS Resolution Test:"
-          nslookup api.uzswlu.uz || echo "⚠️ DNS resolution failed"
-          nslookup auth.uzswlu.uz || echo "⚠️ DNS resolution failed"
+          if command -v nslookup >/dev/null 2>&1; then
+            nslookup api.uzswlu.uz || echo "⚠️ DNS resolution failed"
+            nslookup auth.uzswlu.uz || echo "⚠️ DNS resolution failed"
+          else
+            echo "⚠️ nslookup not available in container"
+          fi
 
-          # Check server Nginx configuration
+          # Check server Nginx configuration (skip if not available)
           echo "🌐 Server Nginx Configuration:"
-          echo "📁 Sites enabled:"
-          ls -la /etc/nginx/sites-enabled/ || echo "⚠️ Could not list sites-enabled"
-          echo "📁 Sites available:"
-          ls -la /etc/nginx/sites-available/ || echo "⚠️ Could not list sites-available"
+          if [ -d "/etc/nginx/sites-enabled" ]; then
+            echo "📁 Sites enabled:"
+            ls -la /etc/nginx/sites-enabled/
+          else
+            echo "⚠️ Server-level Nginx not available in container"
+          fi
 
           # Check what api.uzswlu.uz currently serves
           echo "🔍 Checking what api.uzswlu.uz currently serves:"
@@ -391,8 +397,8 @@ jobs:
 
           # Check if domain is accessible
           echo "🌍 Domain Accessibility Test:"
-          curl -I http://api.uzswlu.uz/ || echo "⚠️ Domain not accessible"
-          curl -I http://172.22.0.19:5001/ || echo "⚠️ Direct IP:port not accessible"
+          curl -I --connect-timeout 10 --max-time 15 http://api.uzswlu.uz/ || echo "⚠️ Domain not accessible"
+          curl -I --connect-timeout 10 --max-time 15 http://172.22.0.19:5001/ || echo "⚠️ Direct IP:port not accessible"
 
           # Check if we need to fix server Nginx configuration
           echo "🔧 Checking if api.uzswlu.uz needs to be redirected to port 5001..."
@@ -430,36 +436,24 @@ jobs:
             echo "✅ api.uzswlu.uz is already correctly configured"
           fi
 
-          # Always ensure API domain points to correct port
-          echo "🔧 Ensuring API domain points to correct port..."
-          API_DOMAIN=$(grep "API_DOMAIN=" .env.prod | cut -d'=' -f2)
-          API_PORT=$(grep "API_PORT=" .env.prod | cut -d'=' -f2)
-
-          echo "server {" > /etc/nginx/sites-available/${API_DOMAIN}
-          echo "    listen 80;" >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "    server_name ${API_DOMAIN};" >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "    " >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "    location / {" >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "        proxy_pass http://127.0.0.1:${API_PORT};" >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "        proxy_set_header Host \$host;" >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "        proxy_set_header X-Real-IP \$remote_addr;" >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;" >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "        proxy_set_header X-Forwarded-Proto \$scheme;" >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "        proxy_redirect off;" >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "        " >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "        # Timeouts" >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "        proxy_connect_timeout 30s;" >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "        proxy_send_timeout 30s;" >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "        proxy_read_timeout 30s;" >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "    }" >> /etc/nginx/sites-available/${API_DOMAIN}
-          echo "}" >> /etc/nginx/sites-available/${API_DOMAIN}
-
-          # Enable the site
-          ln -sf /etc/nginx/sites-available/${API_DOMAIN} /etc/nginx/sites-enabled/
-
-          # Test and reload Nginx
-          nginx -t && nginx -s reload
-          echo "✅ Server-level Nginx configuration updated for ${API_DOMAIN} -> port ${API_PORT}"
+          # Note: Server-level Nginx configuration should be done manually on the server
+          echo "ℹ️ Server-level Nginx configuration:"
+          echo "To configure api.uzswlu.uz -> port 5001, run on server:"
+          echo "sudo cat > /etc/nginx/sites-available/api.uzswlu.uz << 'EOF'"
+          echo "server {"
+          echo "    listen 80;"
+          echo "    server_name api.uzswlu.uz;"
+          echo "    location / {"
+          echo "        proxy_pass http://127.0.0.1:5001;"
+          echo "        proxy_set_header Host \$host;"
+          echo "        proxy_set_header X-Real-IP \$remote_addr;"
+          echo "        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;"
+          echo "        proxy_set_header X-Forwarded-Proto \$scheme;"
+          echo "    }"
+          echo "}"
+          echo "EOF"
+          echo "sudo ln -sf /etc/nginx/sites-available/api.uzswlu.uz /etc/nginx/sites-enabled/"
+          echo "sudo nginx -t && sudo nginx -s reload"
 
       - name: ✅ Deployment success
         run: |
