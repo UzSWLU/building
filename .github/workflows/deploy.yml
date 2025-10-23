@@ -130,9 +130,13 @@ jobs:
         run: |
           cd /var/www/building-api
 
-          # Fix git ownership issue
-          echo "🔧 Fixing git ownership..."
+          # Fix git ownership and permissions
+          echo "🔧 Fixing git ownership and permissions..."
           git config --global --add safe.directory /var/www/building-api
+          
+          # Fix git directory permissions
+          sudo chown -R deploy:deploy /var/www/building-api/.git
+          chmod -R 755 /var/www/building-api/.git
 
           echo "📥 Pulling latest code..."
           git fetch origin main
