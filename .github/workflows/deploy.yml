@@ -1,11 +1,6 @@
 name: 🚀 Deploy to Production
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
   workflow_dispatch:
     inputs:
       environment:
@@ -16,6 +11,11 @@ on:
         options:
           - production
           - staging
+      force_deploy:
+        description: "Force deployment even if no changes"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   test:
@@ -125,14 +125,27 @@ jobs:
     needs: test
     timeout-minutes: 10
     # Run as root user to avoid permission issues
-    container: 
+    container:
       image: ubuntu:22.04
       options: --user root
 
     steps:
-      - name: 📥 Pull latest code
+      - name: 📥 Setup and pull latest code
         run: |
+          # Create directory if it doesn't exist
+          echo "📁 Creating directory structure..."
+          mkdir -p /var/www/building-api
           cd /var/www/building-api
+
+          # Check if repository exists, clone if not
+          if [ ! -d ".git" ]; then
+            echo "📥 Cloning repository..."
+            git clone https://github.com/a-d-sh/building.git .
+          else
+            echo "📥 Pulling latest code..."
+            git fetch origin main
+            git reset --hard origin/main
+          fi
 
           # Fix git ownership and permissions
           echo "🔧 Fixing git ownership and permissions..."
@@ -145,10 +158,6 @@ jobs:
           # Ensure deploy user owns all files
           echo "🔧 Fixing file ownership..."
           chown -R deploy:deploy . 2>/dev/null || echo "⚠️ Could not change file ownership, continuing..."
-
-          echo "📥 Pulling latest code..."
-          git fetch origin main
-          git reset --hard origin/main
 
       - name: 🔧 Update environment variables
         run: |
