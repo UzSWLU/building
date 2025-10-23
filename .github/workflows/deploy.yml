@@ -442,25 +442,8 @@ jobs:
            echo "✅ Building API is running on port 5001 (HTTP) and 5443 (HTTPS)"
            echo "🔧 Creating server-level Nginx configuration for api.uzswlu.uz..."
            
-           # Create SSL certificate directory with proper permissions
-           if [ ! -d "/etc/nginx/ssl" ]; then
-             mkdir -p /etc/nginx/ssl
-           fi
-           if [ ! -d "/etc/nginx/ssl/api.uzswlu.uz" ]; then
-             mkdir -p /etc/nginx/ssl/api.uzswlu.uz
-           fi
-           
-           # Copy SSL certificates with proper permissions
-           cp /var/www/sertifikat/STAR25_uzswlu_uz.crt /etc/nginx/ssl/api.uzswlu.uz/ 2>/dev/null || echo "Warning: Could not copy SSL certificate"
-           cp /var/www/sertifikat/STAR25_uzswlu_uz.key /etc/nginx/ssl/api.uzswlu.uz/ 2>/dev/null || echo "Warning: Could not copy SSL key"
-           
-           # Set permissions if files exist
-           if [ -f "/etc/nginx/ssl/api.uzswlu.uz/STAR25_uzswlu_uz.crt" ]; then
-             chmod 644 /etc/nginx/ssl/api.uzswlu.uz/STAR25_uzswlu_uz.crt
-           fi
-           if [ -f "/etc/nginx/ssl/api.uzswlu.uz/STAR25_uzswlu_uz.key" ]; then
-             chmod 600 /etc/nginx/ssl/api.uzswlu.uz/STAR25_uzswlu_uz.key
-           fi
+           # Note: SSL certificates will be copied manually by server admin
+           # GitHub Actions runner doesn't have permission to write to /etc/nginx/ssl/
            
            # Create Nginx configuration using echo commands
            echo "# HTTP -> HTTPS redirect" > /etc/nginx/sites-available/api.uzswlu.uz
