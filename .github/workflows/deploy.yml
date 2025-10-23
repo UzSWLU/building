@@ -77,10 +77,14 @@ jobs:
             sleep 2
           done
           
-          # Create test database
-          PGPASSWORD=building createdb -h localhost -U building building_test
-          
-          echo "✅ Test database created"
+          # Check if database exists, create if not
+          if PGPASSWORD=building psql -h localhost -U building -lqt | cut -d \| -f 1 | grep -qw building_test; then
+            echo "✅ Test database already exists"
+          else
+            echo "📝 Creating test database..."
+            PGPASSWORD=building createdb -h localhost -U building building_test
+            echo "✅ Test database created"
+          fi
 
       - name: 🗄️ Run migrations
         run: python manage.py migrate
