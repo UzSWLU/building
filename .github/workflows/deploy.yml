@@ -230,25 +230,25 @@ jobs:
           docker-compose -f docker-compose.prod.yml ps || true
 
           echo "🛑 SAFE CLEANUP - Only building-api containers..."
-          
+
           # Stop and remove only building-api containers
           echo "🛑 Stopping building-api containers..."
           docker-compose -f docker-compose.prod.yml down -v --remove-orphans || true
-          
+
           # Remove only building-api related containers
           echo "🛑 Removing building-api containers..."
           docker ps -a --filter "name=building-api" --format "{{.ID}}" | xargs -r docker rm -f || true
-          
+
           # Remove only building-api related volumes
           echo "🛑 Removing building-api volumes..."
           docker volume ls --filter "name=building" --format "{{.Name}}" | xargs -r docker volume rm || true
-          
+
           # Remove specific building-api volumes
           echo "🛑 Removing specific building-api volumes..."
           docker volume rm building-api_db_data 2>/dev/null || true
           docker volume rm building-api_static_volume 2>/dev/null || true
           docker volume rm building-api_media_volume 2>/dev/null || true
-          
+
           # Remove only building-api related networks
           echo "🛑 Removing building-api networks..."
           docker network ls --filter "name=building" --format "{{.Name}}" | xargs -r docker network rm || true
@@ -354,18 +354,19 @@ jobs:
           echo "📝 Recent application logs:"
           docker-compose -f docker-compose.prod.yml logs --tail=50 web
 
-      - name: ✅ Deployment success
-        run: |
-          echo "✅ =============================================="
-          echo "✅ BUILDING API DEPLOYED SUCCESSFULLY!"
-          echo "✅ =============================================="
-          echo ""
-          echo "🌐 Production URLs:"
-          echo "🔗 API: https://building.swagger.uzswlu.uz/"
-          echo "🔗 Swagger UI: https://building.swagger.uzswlu.uz/"
-          echo "🔗 Health Check: https://building.swagger.uzswlu.uz/health/"
-          echo "🔗 API Schema: https://building.swagger.uzswlu.uz/api/schema/"
-          echo "🔗 Admin: https://building.swagger.uzswlu.uz/admin/"
-          echo ""
-          echo "📊 Container Status:"
-          docker-compose -f docker-compose.prod.yml ps
+             - name: ✅ Deployment success
+               run: |
+                 echo "✅ =============================================="
+                 echo "✅ BUILDING API DEPLOYED SUCCESSFULLY!"
+                 echo "✅ =============================================="
+                 echo ""
+                 echo "🌐 Production URLs:"
+                 echo "🔗 API: https://building.swagger.uzswlu.uz/"
+                 echo "🔗 Swagger UI: https://building.swagger.uzswlu.uz/"
+                 echo "🔗 Health Check: https://building.swagger.uzswlu.uz/health/"
+                 echo "🔗 API Schema: https://building.swagger.uzswlu.uz/api/schema/"
+                 echo "🔗 Admin: https://building.swagger.uzswlu.uz/admin/"
+                 echo ""
+                 echo "📊 Container Status:"
+                 cd /var/www/building-api
+                 docker-compose -f docker-compose.prod.yml ps || echo "⚠️ Could not get container status"
