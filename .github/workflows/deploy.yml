@@ -229,20 +229,33 @@ jobs:
           echo "🔍 Checking current containers..."
           docker-compose -f docker-compose.prod.yml ps || true
 
-          echo "🛑 Stopping all containers properly..."
+          echo "🛑 COMPLETE CLEANUP - Removing everything..."
+          
+          # Stop and remove all building-api containers
+          echo "🛑 Stopping building-api containers..."
           docker-compose -f docker-compose.prod.yml down -v --remove-orphans || true
           
-          echo "🔍 Checking for any remaining containers..."
-          docker ps -a || true
+          # Remove all containers (not just building-api)
+          echo "🛑 Stopping ALL containers..."
+          docker stop $(docker ps -aq) 2>/dev/null || true
           
-          echo "🛑 Force removing any remaining containers..."
-          docker container prune -f || true
+          echo "🛑 Removing ALL containers..."
+          docker rm $(docker ps -aq) 2>/dev/null || true
+          
+          echo "🛑 Removing ALL volumes..."
+          docker volume prune -f || true
+          
+          echo "🛑 Removing ALL networks..."
+          docker network prune -f || true
+          
+          echo "🛑 Removing ALL images..."
+          docker image prune -a -f || true
           
           echo "🔍 Checking port 5001 usage..."
           netstat -tulpn | grep :5001 || echo "Port 5001 is free"
           
           echo "⏳ Waiting for complete cleanup..."
-          sleep 10
+          sleep 15
           
           echo "🔨 Building web container..."
           docker-compose -f docker-compose.prod.yml build web
