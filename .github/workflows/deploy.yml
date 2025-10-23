@@ -338,14 +338,14 @@ jobs:
           # Test API endpoints
           echo "🔍 Testing API endpoints..."
 
-          # Health check (domain)
-          curl -f https://building.swagger.uzswlu.uz/health/ || echo "⚠️ Health check failed"
-
-          # Swagger UI (domain)
-          curl -f https://building.swagger.uzswlu.uz/ || echo "⚠️ Swagger UI check failed"
-
-          # API schema (domain)
-          curl -f https://building.swagger.uzswlu.uz/api/schema/ || echo "⚠️ API schema check failed"
+          # Health check (IP)
+          curl -f http://172.22.0.19:5001/health/ || echo "⚠️ Health check failed"
+          
+          # Swagger UI (IP)
+          curl -f http://172.22.0.19:5001/ || echo "⚠️ Swagger UI check failed"
+          
+          # API schema (IP)
+          curl -f http://172.22.0.19:5001/api/schema/ || echo "⚠️ API schema check failed"
 
       - name: 📝 Display logs
         if: always()
@@ -354,19 +354,19 @@ jobs:
           echo "📝 Recent application logs:"
           docker-compose -f docker-compose.prod.yml logs --tail=50 web
 
-             - name: ✅ Deployment success
-               run: |
-                 echo "✅ =============================================="
-                 echo "✅ BUILDING API DEPLOYED SUCCESSFULLY!"
-                 echo "✅ =============================================="
-                 echo ""
-                 echo "🌐 Production URLs:"
-                 echo "🔗 API: https://building.swagger.uzswlu.uz/"
-                 echo "🔗 Swagger UI: https://building.swagger.uzswlu.uz/"
-                 echo "🔗 Health Check: https://building.swagger.uzswlu.uz/health/"
-                 echo "🔗 API Schema: https://building.swagger.uzswlu.uz/api/schema/"
-                 echo "🔗 Admin: https://building.swagger.uzswlu.uz/admin/"
-                 echo ""
-                 echo "📊 Container Status:"
-                 cd /var/www/building-api
-                 docker-compose -f docker-compose.prod.yml ps || echo "⚠️ Could not get container status"
+      - name: ✅ Deployment success
+        run: |
+          echo "✅ =============================================="
+          echo "✅ BUILDING API DEPLOYED SUCCESSFULLY!"
+          echo "✅ =============================================="
+          echo ""
+          echo "🌐 Production URLs:"
+          echo "🔗 API: http://172.22.0.19:5001/"
+          echo "🔗 Swagger UI: http://172.22.0.19:5001/"
+          echo "🔗 Health Check: http://172.22.0.19:5001/health/"
+          echo "🔗 API Schema: http://172.22.0.19:5001/api/schema/"
+          echo "🔗 Admin: http://172.22.0.19:5001/admin/"
+          echo ""
+          echo "📊 Container Status:"
+          cd /var/www/building-api
+          docker-compose -f docker-compose.prod.yml ps || echo "⚠️ Could not get container status"
