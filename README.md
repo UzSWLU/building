@@ -132,7 +132,9 @@ git push origin main
    - SSL: Auto-generated self-signed certificate
    - Production URL: `https://building.swagger.uzswlu.uz`
 
-📖 **Detailed setup guide**: See [GITHUB_SETUP_GUIDE.md](GITHUB_SETUP_GUIDE.md)
+📖 **Detailed setup guide**: See [GITHUB_SETUP_GUIDE.md](GITHUB_SETUP_GUIDE.md)  
+🤖 **Runner setup guide**: See [RUNNER_SETUP_GUIDE.md](RUNNER_SETUP_GUIDE.md)  
+🖥️ **Server setup guide**: See [SERVER_SETUP_GUIDE.md](SERVER_SETUP_GUIDE.md)
 
 ## 🔐 Authentication
 

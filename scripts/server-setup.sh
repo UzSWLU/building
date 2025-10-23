@@ -266,23 +266,35 @@ chmod +x /usr/local/bin/building-api-backup.sh
 echo "⏰ Setting up backup cron job..."
 (crontab -l 2>/dev/null; echo "0 2 * * * /usr/local/bin/building-api-backup.sh") | crontab -
 
-# Set up GitHub Actions runner (if needed)
-echo "🤖 Setting up GitHub Actions runner..."
-if [ ! -d "/opt/actions-runner" ]; then
-    mkdir -p /opt/actions-runner
-    cd /opt/actions-runner
+# Set up GitHub Actions runner for building-api
+echo "🤖 Setting up GitHub Actions runner for building-api..."
+if [ ! -d "/opt/building-actions-runner" ]; then
+    mkdir -p /opt/building-actions-runner
+    cd /opt/building-actions-runner
     
-    # Download runner
-    curl -o actions-runner-linux-x64-2.311.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.311.0/actions-runner-linux-x64-2.311.0.tar.gz
-    tar xzf ./actions-runner-linux-x64-2.311.0.tar.gz
+    # Download latest runner
+    RUNNER_VERSION="2.311.0"
+    curl -o actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz -L https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
+    tar xzf ./actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
+    rm ./actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
     
-    # Configure runner (this needs to be done manually with the token)
-    echo "⚠️  GitHub Actions runner downloaded but not configured."
-    echo "⚠️  Run the following commands manually to configure:"
-    echo "   cd /opt/actions-runner"
-    echo "   sudo ./config.sh --url https://github.com/yourorg/building --token YOUR_TOKEN"
-    echo "   sudo ./svc.sh install"
-    echo "   sudo ./svc.sh start"
+    # Set proper permissions
+    chown -R root:root /opt/building-actions-runner
+    chmod +x /opt/building-actions-runner/config.sh
+    chmod +x /opt/building-actions-runner/run.sh
+    chmod +x /opt/building-actions-runner/svc.sh
+    
+    echo "✅ GitHub Actions runner downloaded for building-api"
+    echo "⚠️  Manual configuration required:"
+    echo "   1. Go to GitHub → Settings → Actions → Runners"
+    echo "   2. Click 'New self-hosted runner'"
+    echo "   3. Copy the setup commands and run on server:"
+    echo "      cd /opt/building-actions-runner"
+    echo "      ./config.sh --url https://github.com/a-d-sh/building --token YOUR_TOKEN"
+    echo "      ./svc.sh install"
+    echo "      ./svc.sh start"
+else
+    echo "✅ GitHub Actions runner already exists for building-api"
 fi
 
 echo ""
