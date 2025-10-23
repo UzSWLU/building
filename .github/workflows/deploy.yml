@@ -133,10 +133,9 @@ jobs:
           # Fix git ownership and permissions
           echo "🔧 Fixing git ownership and permissions..."
           git config --global --add safe.directory /var/www/building-api
-
-          # Fix git directory permissions
-          sudo chown -R deploy:deploy /var/www/building-api/.git
-          chmod -R 755 /var/www/building-api/.git
+          
+          # Try to fix permissions without sudo
+          chmod -R 755 .git 2>/dev/null || echo "⚠️ Could not change git permissions, continuing..."
 
           echo "📥 Pulling latest code..."
           git fetch origin main
