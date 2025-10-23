@@ -446,7 +446,9 @@ jobs:
            if [ ! -d "/etc/nginx/ssl" ]; then
              mkdir -p /etc/nginx/ssl
            fi
-           mkdir -p /etc/nginx/ssl/api.uzswlu.uz
+           if [ ! -d "/etc/nginx/ssl/api.uzswlu.uz" ]; then
+             mkdir -p /etc/nginx/ssl/api.uzswlu.uz
+           fi
            
            # Copy SSL certificates
            cp /var/www/sertifikat/STAR25_uzswlu_uz.crt /etc/nginx/ssl/api.uzswlu.uz/
