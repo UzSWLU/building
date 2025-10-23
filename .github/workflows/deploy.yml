@@ -18,9 +18,107 @@ on:
           - staging
 
 jobs:
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: building_test
+          POSTGRES_USER: building
+          POSTGRES_PASSWORD: building
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🗄️ Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: 🔧 Setup test environment
+        run: |
+          cp env.prod.example .env.test
+          echo "DJANGO_SECRET_KEY=test-secret-key-for-ci" >> .env.test
+          echo "DJANGO_DEBUG=1" >> .env.test
+          echo "DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1" >> .env.test
+          echo "POSTGRES_DB=building_test" >> .env.test
+          echo "POSTGRES_USER=building" >> .env.test
+          echo "POSTGRES_PASSWORD=building" >> .env.test
+          echo "POSTGRES_HOST=localhost" >> .env.test
+          echo "POSTGRES_PORT=5432" >> .env.test
+          echo "AUTH_BASE_URL=https://auth.uzswlu.uz" >> .env.test
+
+      - name: 🗄️ Create test database
+        run: |
+          # Wait for PostgreSQL to be ready
+          until pg_isready -h localhost -p 5432 -U building; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+          
+          # Create test database
+          PGPASSWORD=building createdb -h localhost -U building building_test
+          
+          echo "✅ Test database created"
+
+      - name: 🗄️ Run migrations
+        run: python manage.py migrate
+        env:
+          DJANGO_SETTINGS_MODULE: project_core.settings
+          POSTGRES_DB: building_test
+          POSTGRES_USER: building
+          POSTGRES_PASSWORD: building
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+
+      - name: 🧪 Run tests
+        run: |
+          python manage.py test app_rttm
+        env:
+          DJANGO_SETTINGS_MODULE: project_core.settings
+          POSTGRES_DB: building_test
+          POSTGRES_USER: building
+          POSTGRES_PASSWORD: building
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+
+      - name: 📊 Check code quality
+        run: |
+          python manage.py check
+          python manage.py check --deploy
+        env:
+          DJANGO_SETTINGS_MODULE: project_core.settings
+          POSTGRES_DB: building_test
+          POSTGRES_USER: building
+          POSTGRES_PASSWORD: building
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+
   deploy:
     name: 🚀 Deploy to Production
     runs-on: [self-hosted, Linux, X64]
+    needs: test
     timeout-minutes: 10
     
     steps:
