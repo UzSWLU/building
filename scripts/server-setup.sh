@@ -74,45 +74,68 @@ ufw allow 443/tcp
 ufw allow 5001/tcp  # Building API port
 ufw allow 5443/tcp  # Building API HTTPS port
 
-# Configure Nginx
-echo "🌐 Configuring Nginx..."
-cat > /etc/nginx/sites-available/building.swagger.uzswlu.uz << 'EOF'
+# Configure Nginx for api.uzswlu.uz
+echo "🌐 Configuring Nginx for api.uzswlu.uz..."
+cat > /etc/nginx/sites-available/api.uzswlu.uz << 'EOF'
+# HTTP -> HTTPS redirect
 server {
     listen 80;
-    server_name building.swagger.uzswlu.uz;
+    server_name api.uzswlu.uz;
     
-    # Redirect HTTP to HTTPS
-    return 301 https://$server_name$request_uri;
+    # Let's Encrypt validation
+    location /.well-known/acme-challenge/ {
+        root /var/www/html;
+    }
+    
+    # Redirect all other requests to HTTPS
+    location / {
+        return 301 https://$server_name$request_uri;
+    }
 }
 
+# HTTPS server
 server {
     listen 443 ssl http2;
-    server_name building.swagger.uzswlu.uz;
+    server_name api.uzswlu.uz;
     
-    # SSL configuration (self-signed for now)
-    ssl_certificate /etc/nginx/ssl/building.crt;
-    ssl_certificate_key /etc/nginx/ssl/building.key;
+    # SSL Configuration (will be updated by certbot)
+    ssl_certificate /etc/letsencrypt/live/api.uzswlu.uz/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.uzswlu.uz/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
     ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    ssl_session_tickets off;
     
-    # Security headers
+    # Security Headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-XSS-Protection "1; mode=block" always;
     add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+    add_header X-XSS-Protection "1; mode=block" always;
     
-    # Proxy to Building API
+    # Client max body size
+    client_max_body_size 20M;
+    
+    # Proxy to building API
     location / {
-        proxy_pass http://localhost:5001;
+        proxy_pass http://127.0.0.1:5001;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_redirect off;
+        
+        # Timeouts
         proxy_connect_timeout 30s;
         proxy_send_timeout 30s;
         proxy_read_timeout 30s;
+    }
+    
+    # Health check endpoint
+    location /health/ {
+        proxy_pass http://127.0.0.1:5001;
+        access_log off;
     }
     
     # Static files
@@ -132,21 +155,23 @@ server {
 EOF
 
 # Enable the site
-ln -sf /etc/nginx/sites-available/building.swagger.uzswlu.uz /etc/nginx/sites-enabled/
+ln -sf /etc/nginx/sites-available/api.uzswlu.uz /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 
-# Create SSL directory and generate self-signed certificate
-echo "🔐 Generating SSL certificate..."
-mkdir -p /etc/nginx/ssl
+# Create webroot for Let's Encrypt
+mkdir -p /var/www/html
 
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/nginx/ssl/building.key \
-    -out /etc/nginx/ssl/building.crt \
-    -subj "/C=UZ/ST=Tashkent/L=Tashkent/O=UZSWLU/OU=IT/CN=building.swagger.uzswlu.uz"
+echo "✅ Nginx configuration created for api.uzswlu.uz"
 
-# Test Nginx configuration
-echo "🔍 Testing Nginx configuration..."
-nginx -t
+# Install SSL certificate with Let's Encrypt
+echo "🔒 Installing SSL certificate with Let's Encrypt..."
+certbot --nginx -d api.uzswlu.uz --non-interactive --agree-tos --email admin@uzswlu.uz --redirect
+
+# Setup automatic certificate renewal
+echo "🔄 Setting up automatic certificate renewal..."
+(crontab -l 2>/dev/null; echo "0 12 * * * /usr/bin/certbot renew --quiet") | crontab -
+
+echo "✅ SSL certificate installed and auto-renewal configured"
 
 # Start and enable services
 echo "🚀 Starting services..."
