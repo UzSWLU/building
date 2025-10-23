@@ -338,14 +338,14 @@ jobs:
           # Test API endpoints
           echo "🔍 Testing API endpoints..."
 
-          # Health check (IP)
-          curl -f http://172.22.0.19:5001/health/ || echo "⚠️ Health check failed"
-
-          # Swagger UI (IP)
-          curl -f http://172.22.0.19:5001/ || echo "⚠️ Swagger UI check failed"
-
-          # API schema (IP)
-          curl -f http://172.22.0.19:5001/api/schema/ || echo "⚠️ API schema check failed"
+          # Health check (Domain)
+          curl -f http://api.uzswlu.uz/health/ || echo "⚠️ Health check failed"
+          
+          # Swagger UI (Domain)
+          curl -f http://api.uzswlu.uz/ || echo "⚠️ Swagger UI check failed"
+          
+          # API schema (Domain)
+          curl -f http://api.uzswlu.uz/api/schema/ || echo "⚠️ API schema check failed"
 
       - name: 📝 Display logs
         if: always()
@@ -357,20 +357,20 @@ jobs:
       - name: 🔍 Check DNS and Nginx configuration
         run: |
           echo "🔍 Checking DNS and Nginx configuration..."
-          
+
           # Check DNS resolution
           echo "📡 DNS Resolution Test:"
-          nslookup building.swagger.uzswlu.uz || echo "⚠️ DNS resolution failed"
+          nslookup api.uzswlu.uz || echo "⚠️ DNS resolution failed"
           nslookup swagger.uzswlu.uz || echo "⚠️ DNS resolution failed"
-          
+
           # Check Nginx configuration
           echo "🌐 Nginx Configuration Test:"
           cd /var/www/building-api
           docker-compose -f docker-compose.prod.yml exec nginx nginx -t || echo "⚠️ Nginx config test failed"
-          
+
           # Check if domain is accessible
           echo "🌍 Domain Accessibility Test:"
-          curl -I http://building.swagger.uzswlu.uz/ || echo "⚠️ Domain not accessible"
+          curl -I http://api.uzswlu.uz/ || echo "⚠️ Domain not accessible"
           curl -I http://swagger.uzswlu.uz/ || echo "⚠️ Base domain not accessible"
 
       - name: ✅ Deployment success
@@ -387,11 +387,11 @@ jobs:
           echo "🔗 Admin: http://172.22.0.19:5001/admin/"
           echo ""
           echo "🌐 Domain URLs (if DNS is configured):"
-          echo "🔗 API: http://building.swagger.uzswlu.uz/"
-          echo "🔗 Swagger UI: http://building.swagger.uzswlu.uz/"
-          echo "🔗 Health Check: http://building.swagger.uzswlu.uz/health/"
-          echo "🔗 API Schema: http://building.swagger.uzswlu.uz/api/schema/"
-          echo "🔗 Admin: http://building.swagger.uzswlu.uz/admin/"
+          echo "🔗 API: http://api.uzswlu.uz/"
+          echo "🔗 Swagger UI: http://api.uzswlu.uz/"
+          echo "🔗 Health Check: http://api.uzswlu.uz/health/"
+          echo "🔗 API Schema: http://api.uzswlu.uz/api/schema/"
+          echo "🔗 Admin: http://api.uzswlu.uz/admin/"
           echo ""
           echo "📊 Container Status:"
           cd /var/www/building-api
