@@ -17,7 +17,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Set runner directory
-RUNNER_DIR="/opt/building-actions-runner"
+RUNNER_DIR="/var/www/building-api/runner"
 RUNNER_VERSION="2.311.0"
 
 echo "📁 Runner directory: $RUNNER_DIR"

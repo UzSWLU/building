@@ -54,21 +54,21 @@ ssh root@172.22.0.19
 
 ```bash
 # Mavjud runnerlarni ko'rish
-ls -la /opt/
+ls -la /var/www/
 
 # Auth-api runner (mavjud)
-ls -la /opt/actions-runner/
+ls -la /var/www/auth-api/
 
 # Building-api runner (yaratish kerak)
-ls -la /opt/building-actions-runner/
+ls -la /var/www/building-api/
 ```
 
 ### 2.3 Building API Runner Yaratish
 
 ```bash
 # Runner katalogini yaratish
-mkdir -p /opt/building-actions-runner
-cd /opt/building-actions-runner
+mkdir -p /var/www/building-api/runner
+cd /var/www/building-api/runner
 
 # Runner fayllarini yuklab olish
 RUNNER_VERSION="2.311.0"
@@ -79,10 +79,10 @@ tar xzf ./actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
 rm ./actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
 
 # Ruxsatlarni sozlash
-chown -R root:root /opt/building-actions-runner
-chmod +x /opt/building-actions-runner/config.sh
-chmod +x /opt/building-actions-runner/run.sh
-chmod +x /opt/building-actions-runner/svc.sh
+chown -R root:root /var/www/building-api/runner
+chmod +x /var/www/building-api/runner/config.sh
+chmod +x /var/www/building-api/runner/run.sh
+chmod +x /var/www/building-api/runner/svc.sh
 
 echo "✅ Runner fayllari yuklab olindi!"
 ```
@@ -101,7 +101,7 @@ GitHub dan quyidagi komandalarni ko'rsatadi:
 
 ```bash
 # Serverda runner katalogiga o'tish
-cd /opt/building-actions-runner
+cd /var/www/building-api/runner
 
 # GitHub dan berilgan komandani ishga tushirish
 ./config.sh --url https://github.com/a-d-sh/building --token YOUR_TOKEN
@@ -184,7 +184,7 @@ cat > /etc/nginx/sites-available/building.swagger.uzswlu.uz << 'EOF'
 server {
     listen 80;
     server_name building.swagger.uzswlu.uz;
-    
+
     location / {
         proxy_pass http://localhost:5001;
         proxy_set_header Host $host;
@@ -266,7 +266,7 @@ git push origin main
 sudo su -
 
 # Yoki runner fayllarini root ga tegishli qilish
-chown -R root:root /opt/building-actions-runner
+chown -R root:root /var/www/building-api/runner
 ```
 
 ### Issue: Runner Offline
@@ -276,7 +276,7 @@ chown -R root:root /opt/building-actions-runner
 systemctl restart actions.runner.building-api
 
 # Yoki manual ishga tushirish
-cd /opt/building-actions-runner
+cd /var/www/building-api/runner
 ./run.sh
 ```
 

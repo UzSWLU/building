@@ -18,13 +18,13 @@ ssh root@172.22.0.19
 
 ```bash
 # Mavjud runnerlarni ko'rish
-ls -la /opt/
+ls -la /var/www/
 
 # Auth-api runner (mavjud)
-ls -la /opt/actions-runner/
+ls -la /var/www/auth-api/
 
 # Building-api runner (yaratish kerak)
-ls -la /opt/building-actions-runner/
+ls -la /var/www/building-api/
 ```
 
 ## 🚀 Step 3: Building API Runner Yaratish
@@ -41,8 +41,8 @@ curl -fsSL https://raw.githubusercontent.com/a-d-sh/building/main/scripts/server
 
 ```bash
 # Runner katalogini yaratish
-mkdir -p /opt/building-actions-runner
-cd /opt/building-actions-runner
+mkdir -p /var/www/building-api/runner
+cd /var/www/building-api/runner
 
 # Runner fayllarini yuklab olish
 RUNNER_VERSION="2.311.0"
@@ -53,10 +53,10 @@ tar xzf ./actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
 rm ./actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
 
 # Ruxsatlarni sozlash
-chown -R root:root /opt/building-actions-runner
-chmod +x /opt/building-actions-runner/config.sh
-chmod +x /opt/building-actions-runner/run.sh
-chmod +x /opt/building-actions-runner/svc.sh
+chown -R root:root /var/www/building-api/runner
+chmod +x /var/www/building-api/runner/config.sh
+chmod +x /var/www/building-api/runner/run.sh
+chmod +x /var/www/building-api/runner/svc.sh
 ```
 
 ## ⚙️ Step 4: GitHub da Runner Sozlash
@@ -94,7 +94,7 @@ GitHub da runner yaratishda token avtomatik beriladi. Ushbu token:
 
 ```bash
 # Serverda runner katalogiga o'tish
-cd /opt/building-actions-runner
+cd /var/www/building-api/runner
 
 # GitHub dan berilgan komandani ishga tushirish
 ./config.sh --url https://github.com/a-d-sh/building --token YOUR_TOKEN
@@ -166,7 +166,7 @@ git push origin main
 sudo su -
 
 # Yoki runner fayllarini root ga tegishli qilish
-chown -R root:root /opt/building-actions-runner
+chown -R root:root /var/www/building-api/runner
 ```
 
 ### Issue: Runner Offline
@@ -176,7 +176,7 @@ chown -R root:root /opt/building-actions-runner
 systemctl restart actions.runner.building-api
 
 # Yoki manual ishga tushirish
-cd /opt/building-actions-runner
+cd /var/www/building-api/runner
 ./run.sh
 ```
 
@@ -193,7 +193,7 @@ chmod +x /opt/building-actions-runner/svc.sh
 
 ```bash
 # Runner ni qayta konfiguratsiya qilish
-cd /opt/building-actions-runner
+cd /var/www/building-api/runner
 ./config.sh remove
 ./config.sh --url https://github.com/a-d-sh/building --token NEW_TOKEN
 ```
@@ -210,7 +210,7 @@ systemctl status actions.runner.building-api
 journalctl -u actions.runner.building-api -f
 
 # Runner directory
-ls -la /opt/building-actions-runner/
+ls -la /var/www/building-api/runner/
 ```
 
 ### GitHub Actions

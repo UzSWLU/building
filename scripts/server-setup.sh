@@ -268,9 +268,9 @@ echo "⏰ Setting up backup cron job..."
 
 # Set up GitHub Actions runner for building-api
 echo "🤖 Setting up GitHub Actions runner for building-api..."
-if [ ! -d "/opt/building-actions-runner" ]; then
-    mkdir -p /opt/building-actions-runner
-    cd /opt/building-actions-runner
+if [ ! -d "/var/www/building-api/runner" ]; then
+    mkdir -p /var/www/building-api/runner
+    cd /var/www/building-api/runner
     
     # Download latest runner
     RUNNER_VERSION="2.311.0"
@@ -279,17 +279,17 @@ if [ ! -d "/opt/building-actions-runner" ]; then
     rm ./actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
     
     # Set proper permissions
-    chown -R root:root /opt/building-actions-runner
-    chmod +x /opt/building-actions-runner/config.sh
-    chmod +x /opt/building-actions-runner/run.sh
-    chmod +x /opt/building-actions-runner/svc.sh
+    chown -R root:root /var/www/building-api/runner
+    chmod +x /var/www/building-api/runner/config.sh
+    chmod +x /var/www/building-api/runner/run.sh
+    chmod +x /var/www/building-api/runner/svc.sh
     
     echo "✅ GitHub Actions runner downloaded for building-api"
     echo "⚠️  Manual configuration required:"
     echo "   1. Go to GitHub → Settings → Actions → Runners"
     echo "   2. Click 'New self-hosted runner'"
     echo "   3. Copy the setup commands and run on server:"
-    echo "      cd /opt/building-actions-runner"
+    echo "      cd /var/www/building-api/runner"
     echo "      ./config.sh --url https://github.com/a-d-sh/building --token YOUR_TOKEN"
     echo "      ./svc.sh install"
     echo "      ./svc.sh start"
