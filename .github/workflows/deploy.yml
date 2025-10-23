@@ -149,35 +149,33 @@ jobs:
           fi
           
           # Create complete environment file
-          cat > .env.production << 'EOF'
-# Production Environment Variables for Building API
-
-# Django Settings
-DJANGO_SECRET_KEY=django-insecure-production-secret-key-change-this-in-production
-DJANGO_DEBUG=0
-DJANGO_ALLOWED_HOSTS=building.swagger.uzswlu.uz
-
-# Database Settings
-POSTGRES_DB=building
-POSTGRES_USER=building
-POSTGRES_PASSWORD=building_production_password_2024
-POSTGRES_HOST=db
-POSTGRES_PORT=5432
-
-# Auth Service
-AUTH_BASE_URL=https://auth.uzswlu.uz
-AUTH_TIMEOUT=10
-AUTH_CACHE_TIMEOUT=300
-
-# OAuth URLs
-BACKEND_URL=https://auth.uzswlu.uz
-FRONTEND_CALLBACK_URL=https://building.swagger.uzswlu.uz/callback,http://localhost:5001/callback
-
-# Server Settings
-SERVER_HOST=172.22.0.19
-SERVER_USER=root
-SERVER_PORT=22
-EOF
+          echo "# Production Environment Variables for Building API" > .env.production
+          echo "" >> .env.production
+          echo "# Django Settings" >> .env.production
+          echo "DJANGO_SECRET_KEY=django-insecure-production-secret-key-change-this-in-production" >> .env.production
+          echo "DJANGO_DEBUG=0" >> .env.production
+          echo "DJANGO_ALLOWED_HOSTS=building.swagger.uzswlu.uz" >> .env.production
+          echo "" >> .env.production
+          echo "# Database Settings" >> .env.production
+          echo "POSTGRES_DB=building" >> .env.production
+          echo "POSTGRES_USER=building" >> .env.production
+          echo "POSTGRES_PASSWORD=building_production_password_2024" >> .env.production
+          echo "POSTGRES_HOST=db" >> .env.production
+          echo "POSTGRES_PORT=5432" >> .env.production
+          echo "" >> .env.production
+          echo "# Auth Service" >> .env.production
+          echo "AUTH_BASE_URL=https://auth.uzswlu.uz" >> .env.production
+          echo "AUTH_TIMEOUT=10" >> .env.production
+          echo "AUTH_CACHE_TIMEOUT=300" >> .env.production
+          echo "" >> .env.production
+          echo "# OAuth URLs" >> .env.production
+          echo "BACKEND_URL=https://auth.uzswlu.uz" >> .env.production
+          echo "FRONTEND_CALLBACK_URL=https://building.swagger.uzswlu.uz/callback,http://localhost:5001/callback" >> .env.production
+          echo "" >> .env.production
+          echo "# Server Settings" >> .env.production
+          echo "SERVER_HOST=172.22.0.19" >> .env.production
+          echo "SERVER_USER=root" >> .env.production
+          echo "SERVER_PORT=22" >> .env.production
           
           echo "✅ Environment configured:"
           cat .env.production
