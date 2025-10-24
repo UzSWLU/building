@@ -400,48 +400,51 @@ jobs:
           curl -I --connect-timeout 10 --max-time 15 http://api.uzswlu.uz/ || echo "⚠️ Domain not accessible"
           curl -I --connect-timeout 10 --max-time 15 http://172.22.0.19:5001/ || echo "⚠️ Direct IP:port not accessible"
 
-          # Check if we need to fix server Nginx configuration
-          echo "🔧 Checking if api.uzswlu.uz needs to be redirected to port 5001..."
-          if curl -s http://api.uzswlu.uz/ | grep -q "auth"; then
-            echo "⚠️ api.uzswlu.uz is currently serving auth-api, need to fix!"
-            echo "📝 Creating Nginx configuration to redirect api.uzswlu.uz to port 5001..."
-            
-            # Create Nginx configuration for api.uzswlu.uz
-            echo "server {" > /etc/nginx/sites-available/api.uzswlu.uz
-            echo "    listen 80;" >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "    server_name api.uzswlu.uz;" >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "    " >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "    location / {" >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "        proxy_pass http://127.0.0.1:5001;" >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "        proxy_set_header Host \$host;" >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "        proxy_set_header X-Real-IP \$remote_addr;" >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;" >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "        proxy_set_header X-Forwarded-Proto \$scheme;" >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "        proxy_redirect off;" >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "        " >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "        # Timeouts" >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "        proxy_connect_timeout 30s;" >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "        proxy_send_timeout 30s;" >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "        proxy_read_timeout 30s;" >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "    }" >> /etc/nginx/sites-available/api.uzswlu.uz
-            echo "}" >> /etc/nginx/sites-available/api.uzswlu.uz
-            
-            # Enable the site
-            ln -sf /etc/nginx/sites-available/api.uzswlu.uz /etc/nginx/sites-enabled/
-            
-            # Test and reload Nginx
-            nginx -t && nginx -s reload
-            echo "✅ Nginx configuration updated for api.uzswlu.uz"
-          else
-            echo "✅ api.uzswlu.uz is already correctly configured"
-          fi
+          # Check current domain status
+          echo "🔧 Checking current domain status..."
+          echo "📝 api.uzswlu.uz should be moved to building.api.uzswlu.uz"
+          echo "📝 Current status will be checked by server admin"
 
           # Auto-configure server-level Nginx and SSL certificates
           echo "🔧 Auto-configuring server-level Nginx and SSL..."
+          
+          # Create server-level Nginx configuration via Docker exec
+          echo "📝 Creating server-level Nginx configuration..."
+          
+          # Remove old api.uzswlu.uz configuration if exists
+          docker exec $(docker ps -q --filter "name=nginx") rm -f /etc/nginx/sites-enabled/api.uzswlu.uz 2>/dev/null || true
+          
+          # Create building.api.uzswlu.uz configuration
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'cat > /etc/nginx/sites-available/building.api.uzswlu.uz << "EOF"
+# HTTP server
+server {
+    listen 80;
+    server_name building.api.uzswlu.uz;
 
-           echo "✅ Building API is running on port 5001 (HTTP) and 5443 (HTTPS)"
-           echo "📝 Note: Server-level Nginx configuration requires manual setup"
-           echo "📝 SSL certificates and Nginx config will be set up by server admin"
+    # Proxy to Building API Docker container
+    location / {
+        proxy_pass http://127.0.0.1:5001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        
+        # Additional headers for Django
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $host;
+    }
+}
+EOF'
+          
+          # Enable the site
+          docker exec $(docker ps -q --filter "name=nginx") ln -sf /etc/nginx/sites-available/building.api.uzswlu.uz /etc/nginx/sites-enabled/
+          
+          # Test and reload Nginx
+          docker exec $(docker ps -q --filter "name=nginx") nginx -t && docker exec $(docker ps -q --filter "name=nginx") nginx -s reload
+          
+          echo "✅ Server-level Nginx configuration updated for building.api.uzswlu.uz"
 
       - name: ✅ Deployment success
         run: |
