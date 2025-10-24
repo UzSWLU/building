@@ -52,23 +52,18 @@ jobs:
           cd /var/www/building-api
           echo "Changed to /var/www/building-api"
           
-          # Fix permissions before git operations
-          echo "Fixing permissions..."
-          sudo chown -R $(whoami):$(whoami) . 2>/dev/null || true
-          sudo chmod -R 755 . 2>/dev/null || true
+          # Force remove existing directory and clone fresh
+          echo "Removing existing directory to avoid permission issues..."
+          cd /var/www
+          sudo rm -rf building-api
+          mkdir -p building-api
+          cd building-api
           
-          # Check if git repository exists
-          if [ ! -d ".git" ]; then
-            echo "Git repository not found, cloning..."
-            git clone https://github.com/a-d-sh/building.git .
-          else
-            echo "Pulling latest code..."
-            git fetch origin main
-            git reset --hard origin/main
-          fi
+          echo "Cloning fresh repository..."
+          git clone https://github.com/a-d-sh/building.git .
           
-          # Fix permissions after git operations
-          echo "Fixing permissions after git operations..."
+          # Set proper ownership
+          echo "Setting proper ownership..."
           sudo chown -R $(whoami):$(whoami) . 2>/dev/null || true
           sudo chmod -R 755 . 2>/dev/null || true
           
