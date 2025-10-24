@@ -12,7 +12,7 @@ on:
 jobs:
   validate:
     name: Validate YAML
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 2
 
     steps:
@@ -33,7 +33,7 @@ jobs:
 
   deploy:
     name: Deploy to Production
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 15
     needs: validate
     steps:
@@ -41,18 +41,39 @@ jobs:
         timeout-minutes: 15
         run: |
           echo "Starting deployment..."
-          echo "GitHub-hosted runner deployment test"
-          echo "Building project workflow is working!"
           
-          # Simulate deployment steps
-          echo "1. Code validation: PASSED"
-          echo "2. Docker build simulation: PASSED"
-          echo "3. Container deployment simulation: PASSED"
-          echo "4. Health check simulation: PASSED"
+          # Check if directory exists
+          if [ ! -d "/var/www/building-api" ]; then
+            echo "Directory /var/www/building-api not found"
+            exit 1
+          fi
           
-          echo "Deployment simulation completed successfully!"
-          echo "Building API would be deployed to: https://building.api.uzswlu.uz"
-          echo "Note: Real deployment requires self-hosted runner"
+          cd /var/www/building-api
+          echo "Changed to /var/www/building-api"
+          
+          echo "Pulling latest code..."
+          git fetch origin main
+          git reset --hard origin/main
+          
+          echo "Code updated successfully!"
+          
+          # Stop existing containers
+          echo "Stopping existing containers..."
+          docker-compose -f docker-compose.prod.yml down || echo "No containers to stop"
+          
+          # Build and start containers locally
+          echo "Building and starting containers..."
+          docker-compose -f docker-compose.prod.yml up -d --build
+          
+          echo "Containers started successfully!"
+
+          # Wait for containers to be ready
+          echo "Waiting for containers to be ready..."
+          sleep 15
+          
+          # Check container status
+          echo "Checking container status..."
+          docker-compose -f docker-compose.prod.yml ps
 
       - name: Error Handler - Deploy
         if: failure()
@@ -65,7 +86,7 @@ jobs:
       - name: Monitor Deployment Status
         run: |
           echo "Monitoring deployment status..."
-          
+
           # Check if containers are running
           if docker ps | grep -q "building-api-web-1"; then
             echo "Building API container is running"
@@ -73,14 +94,14 @@ jobs:
             echo "Building API container is not running"
             exit 1
           fi
-          
+
           if docker ps | grep -q "building-api-nginx-1"; then
             echo "Building Nginx container is running"
           else
             echo "Building Nginx container is not running"
             exit 1
           fi
-          
+
           # Check if ports are accessible
           if curl -s -o /dev/null -w "%{http_code}" http://localhost:5001 | grep -q "200"; then
             echo "Building API is accessible on port 5001"
@@ -107,7 +128,7 @@ jobs:
 
   notify:
     name: Notify Status
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     needs: [validate, deploy]
     if: always()
     steps:
@@ -122,8 +143,7 @@ jobs:
           echo ""
           if [ "${{ needs.deploy.result }}" = "success" ]; then
             echo "All jobs completed successfully!"
-            echo "Building project workflow is working!"
-            echo "Note: Self-hosted runner needed for real deployment"
+            echo "Building API is now live at: https://building.api.uzswlu.uz"
           else
             echo "Some jobs failed. Check logs for details."
           fi
