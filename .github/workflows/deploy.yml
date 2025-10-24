@@ -196,11 +196,11 @@ jobs:
           echo "# Django Settings" >> .env.prod
           echo "DJANGO_SECRET_KEY=django-insecure-production-secret-key-change-this-in-production" >> .env.prod
           echo "DJANGO_DEBUG=0" >> .env.prod
-          echo "DJANGO_ALLOWED_HOSTS=api.uzswlu.uz,172.22.0.19,localhost,127.0.0.1" >> .env.prod
+          echo "DJANGO_ALLOWED_HOSTS=building.api.uzswlu.uz,172.22.0.19,localhost,127.0.0.1" >> .env.prod
           echo "CSRF_TRUSTED_ORIGINS=https://front.uzswlu.uz,https://building.api.uzswlu.uz,https://api.uzswlu.uz,https://uzswlu.uz,http://localhost:3003,http://172.22.0.19:5001" >> .env.prod
           echo "" >> .env.prod
           echo "# Domain Configuration" >> .env.prod
-          echo "API_DOMAIN=api.uzswlu.uz" >> .env.prod
+          echo "API_DOMAIN=building.api.uzswlu.uz" >> .env.prod
           echo "API_PORT=5001" >> .env.prod
           echo "" >> .env.prod
           echo "# Database Settings" >> .env.prod
@@ -345,13 +345,13 @@ jobs:
           echo "🔍 Testing API endpoints..."
 
           # Health check (Domain)
-          curl -f http://api.uzswlu.uz/health/ || echo "⚠️ Health check failed"
+          curl -f http://building.api.uzswlu.uz/health/ || echo "⚠️ Health check failed"
 
           # Swagger UI (Domain)
-          curl -f http://api.uzswlu.uz/ || echo "⚠️ Swagger UI check failed"
+          curl -f http://building.api.uzswlu.uz/ || echo "⚠️ Swagger UI check failed"
 
           # API schema (Domain)
-          curl -f http://api.uzswlu.uz/api/schema/ || echo "⚠️ API schema check failed"
+          curl -f http://building.api.uzswlu.uz/api/schema/ || echo "⚠️ API schema check failed"
 
       - name: 📝 Display logs
         if: always()
@@ -382,9 +382,9 @@ jobs:
             echo "⚠️ Server-level Nginx not available in container"
           fi
 
-          # Check what api.uzswlu.uz currently serves
-          echo "🔍 Checking what api.uzswlu.uz currently serves:"
-          curl -s http://api.uzswlu.uz/ | head -10 || echo "⚠️ Could not get api.uzswlu.uz content"
+          # Check what building.api.uzswlu.uz currently serves
+          echo "🔍 Checking what building.api.uzswlu.uz currently serves:"
+          curl -s http://building.api.uzswlu.uz/ | head -10 || echo "⚠️ Could not get building.api.uzswlu.uz content"
 
           # Check what auth.uzswlu.uz serves
           echo "🔍 Checking what auth.uzswlu.uz serves:"
@@ -397,7 +397,7 @@ jobs:
 
           # Check if domain is accessible
           echo "🌍 Domain Accessibility Test:"
-          curl -I --connect-timeout 10 --max-time 15 http://api.uzswlu.uz/ || echo "⚠️ Domain not accessible"
+          curl -I --connect-timeout 10 --max-time 15 http://building.api.uzswlu.uz/ || echo "⚠️ Domain not accessible"
           curl -I --connect-timeout 10 --max-time 15 http://172.22.0.19:5001/ || echo "⚠️ Direct IP:port not accessible"
 
           # Check current domain status
@@ -415,28 +415,24 @@ jobs:
           docker exec $(docker ps -q --filter "name=nginx") rm -f /etc/nginx/sites-enabled/api.uzswlu.uz 2>/dev/null || true
           
           # Create building.api.uzswlu.uz configuration
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'cat > /etc/nginx/sites-available/building.api.uzswlu.uz << "EOF"
-# HTTP server
-server {
-    listen 80;
-    server_name building.api.uzswlu.uz;
-
-    # Proxy to Building API Docker container
-    location / {
-        proxy_pass http://127.0.0.1:5001;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Port $server_port;
-        
-        # Additional headers for Django
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $host;
-    }
-}
-EOF'
+          echo "📝 Creating building.api.uzswlu.uz Nginx configuration..."
+          
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "server {" > /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "    listen 80;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "    server_name building.api.uzswlu.uz;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "    location / {" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_pass http://127.0.0.1:5001;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header Host \$host;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header X-Real-IP \$remote_addr;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header X-Forwarded-Proto \$scheme;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header X-Forwarded-Host \$host;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header X-Forwarded-Port \$server_port;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header X-Forwarded-Host \$server_name;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header X-Forwarded-Server \$host;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "    }" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
+          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "}" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
           
           # Enable the site
           docker exec $(docker ps -q --filter "name=nginx") ln -sf /etc/nginx/sites-available/building.api.uzswlu.uz /etc/nginx/sites-enabled/
