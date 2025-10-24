@@ -148,7 +148,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     needs: test
     timeout-minutes: 10
-    # Run directly on server (not in container) to access nginx and docker
+    # Run as root user to avoid permission issues
 
     steps:
       - name: 📦 Check required packages
@@ -160,28 +160,60 @@ jobs:
           which curl || echo "⚠️ curl not found"
           echo "✅ Package check completed"
 
+      - name: 🔧 Setup GitHub Actions Runner as Root
+        run: |
+          echo "🔧 Setting up GitHub Actions Runner as root user..."
+          
+          # Stop existing runner service
+          systemctl stop building-api-runner.service 2>/dev/null || echo "Service not running"
+          
+          # Update service file to run as root
+          cat > /etc/systemd/system/building-api-runner.service << 'EOF'
+[Unit]
+Description=Building API GitHub Actions Runner
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/building-api/runner
+ExecStart=/var/www/building-api/runner/run.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+          
+          # Reload and restart service
+          systemctl daemon-reload
+          systemctl enable building-api-runner.service
+          systemctl start building-api-runner.service
+          
+          echo "✅ GitHub Actions Runner configured as root user"
+
       - name: 📥 Setup and pull latest code
         run: |
           # Create directory if it doesn't exist
           echo "📁 Creating directory structure..."
-          sudo mkdir -p /var/www/building-api
+          mkdir -p /var/www/building-api
           cd /var/www/building-api
 
           # Check if repository exists, clone if not
           if [ ! -d ".git" ]; then
             echo "📥 Cloning repository..."
-            sudo git clone https://github.com/a-d-sh/building.git .
+            git clone https://github.com/a-d-sh/building.git .
           else
             echo "📥 Pulling latest code..."
-            sudo git fetch origin main
-            sudo git reset --hard origin/main
+            git fetch origin main
+            git reset --hard origin/main
           fi
 
-          # Fix git ownership and permissions
-          echo "🔧 Fixing git ownership and permissions..."
-          sudo chown -R deploy:deploy .
-          sudo chmod -R 755 .
-          sudo -u deploy git config --global --add safe.directory /var/www/building-api
+          # Set proper ownership and permissions
+          echo "🔧 Setting proper ownership and permissions..."
+          chown -R deploy:deploy .
+          chmod -R 755 .
+          git config --global --add safe.directory /var/www/building-api
 
       - name: 🔧 Update environment variables
         run: |
