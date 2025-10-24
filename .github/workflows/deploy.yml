@@ -2,107 +2,57 @@ name: Deploy Building API
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   deploy:
-    runs-on: self-hosted
-    
+    runs-on: ubuntu-latest
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        run: |
+          echo "🚀 Starting Building API deployment..."
+          echo "📁 Working directory: $(pwd)"
+          echo "📅 Deployment time: $(date)"
+
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
       
-    - name: Setup environment
+    - name: Build Docker image
       run: |
-        echo "🚀 Starting Building API deployment..."
-        echo "📁 Working directory: $(pwd)"
-        echo "📅 Deployment time: $(date)"
+        echo "🔨 Building Docker image..."
+        docker build -f Dockerfile.prod -t building-api:latest .
         
-    - name: Stop existing containers
+    - name: Test Docker image
       run: |
-        echo "🛑 Stopping existing containers..."
-        docker-compose -f docker-compose.prod.yml down || echo "No containers to stop"
+        echo "🧪 Testing Docker image..."
+        docker run --rm building-api:latest python manage.py check
         
-    - name: Build and start containers
+    - name: Build success
       run: |
-        echo "🔨 Building and starting containers..."
-        docker-compose -f docker-compose.prod.yml up -d --build
-        
-    - name: Wait for services
-      run: |
-        echo "⏳ Waiting for services to start..."
-        sleep 30
-        
-    - name: Run database migrations
-      run: |
-        echo "🗄️ Running database migrations..."
-        docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
-        
-    - name: Create superuser
-      run: |
-        echo "👤 Creating superuser..."
-        docker-compose -f docker-compose.prod.yml exec -T web python manage.py shell -c "
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        if not User.objects.filter(username='admin').exists():
-            User.objects.create_superuser('admin', 'admin@uzswlu.uz', 'admin123')
-            print('Superuser created: admin/admin123')
-        else:
-            print('Superuser already exists')
-        "
-        
-    - name: Collect static files
-      run: |
-        echo "📊 Collecting static files..."
-        docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
-        
-    - name: Health check
-      run: |
-        echo "🏥 Performing health checks..."
-        sleep 10
-        
-        # Check container status
-        echo "📊 Container Status:"
-        docker-compose -f docker-compose.prod.yml ps
-        
-        # Test API endpoints
-        echo "🔍 Testing API endpoints..."
-        
-        # Health check
-        if curl -f -s http://localhost:5001/api/health/ > /dev/null; then
-            echo "✅ Health check passed"
-        else
-            echo "❌ Health check failed"
-        fi
-        
-        # API schema
-        if curl -f -s http://localhost:5001/api/schema/ > /dev/null; then
-            echo "✅ API schema accessible"
-        else
-            echo "❌ API schema not accessible"
-        fi
-        
-    - name: Cleanup
-      run: |
-        echo "🧹 Cleaning up old Docker images..."
-        docker image prune -f
-        
+        echo "✅ Docker image built successfully!"
+        echo "📊 Image details:"
+        docker images building-api:latest
+
     - name: Deployment success
       run: |
         echo ""
         echo "✅ =============================================="
-        echo "✅ BUILDING API DEPLOYED SUCCESSFULLY!"
+        echo "✅ BUILDING API BUILD COMPLETED!"
         echo "✅ =============================================="
         echo ""
-        echo "🔗 API: https://building.swagger.uzswlu.uz/"
-        echo "🔗 Swagger UI: https://building.swagger.uzswlu.uz/"
-        echo "🔗 Health Check: https://building.swagger.uzswlu.uz/api/health/"
-        echo "🔗 Admin: https://building.swagger.uzswlu.uz/admin/"
+        echo "🔗 Docker image: building-api:latest"
+        echo "🔗 Ready for deployment to server"
+        echo ""
+        echo "📋 Next steps:"
+        echo "1. Push image to registry"
+        echo "2. Deploy to production server"
+        echo "3. Configure domain: https://building.swagger.uzswlu.uz/"
         echo ""
         echo "👤 Default Admin Credentials:"
         echo "   Username: admin"
         echo "   Password: admin123"
-        echo ""
-        echo "📊 Container Status:"
-        docker-compose -f docker-compose.prod.yml ps
