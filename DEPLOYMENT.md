@@ -47,6 +47,7 @@ docker-compose -f docker-compose.prod.yml ps
 ## 🎯 Expected Results
 
 After deployment:
+
 - ✅ API accessible at: `https://building.api.uzswlu.uz/`
 - ✅ Health check: `https://building.api.uzswlu.uz/api/health/`
 - ✅ Admin panel: `https://building.api.uzswlu.uz/admin/`
@@ -55,6 +56,7 @@ After deployment:
 ## 🚨 Troubleshooting
 
 If API still doesn't work:
+
 1. Check container logs: `docker-compose -f docker-compose.prod.yml logs`
 2. Check nginx config: `docker-compose -f docker-compose.prod.yml exec nginx nginx -t`
 3. Check Django settings: `docker-compose -f docker-compose.prod.yml exec web python manage.py check`
