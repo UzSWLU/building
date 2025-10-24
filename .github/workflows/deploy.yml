@@ -164,30 +164,24 @@ jobs:
         run: |
           # Create directory if it doesn't exist
           echo "📁 Creating directory structure..."
-          mkdir -p /var/www/building-api
+          sudo mkdir -p /var/www/building-api
           cd /var/www/building-api
 
           # Check if repository exists, clone if not
           if [ ! -d ".git" ]; then
             echo "📥 Cloning repository..."
-            git clone https://github.com/a-d-sh/building.git .
+            sudo git clone https://github.com/a-d-sh/building.git .
           else
             echo "📥 Pulling latest code..."
-            git fetch origin main
-            git reset --hard origin/main
+            sudo git fetch origin main
+            sudo git reset --hard origin/main
           fi
 
           # Fix git ownership and permissions
           echo "🔧 Fixing git ownership and permissions..."
-          git config --global --add safe.directory /var/www/building-api
-
-          # Fix permissions for entire directory
-          echo "🔧 Fixing directory permissions..."
-          chmod -R 755 . 2>/dev/null || echo "⚠️ Could not change directory permissions, continuing..."
-
-          # Ensure deploy user owns all files
-          echo "🔧 Fixing file ownership..."
-          chown -R deploy:deploy . 2>/dev/null || echo "⚠️ Could not change file ownership, continuing..."
+          sudo chown -R deploy:deploy .
+          sudo chmod -R 755 .
+          sudo -u deploy git config --global --add safe.directory /var/www/building-api
 
       - name: 🔧 Update environment variables
         run: |
@@ -420,7 +414,7 @@ jobs:
 
           # Run universal server setup script
           echo "🚀 Running universal server setup..."
-          
+
           # Create universal setup script
           echo "#!/bin/bash" > /tmp/universal-setup.sh
           echo "set -e" >> /tmp/universal-setup.sh
@@ -530,7 +524,7 @@ jobs:
           echo "fi" >> /tmp/universal-setup.sh
           echo "" >> /tmp/universal-setup.sh
           echo "print_status \"Universal server setup completed!\"" >> /tmp/universal-setup.sh
-          
+
           # Make script executable and run it
           chmod +x /tmp/universal-setup.sh
           /tmp/universal-setup.sh
