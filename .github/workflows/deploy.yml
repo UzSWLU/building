@@ -408,39 +408,33 @@ jobs:
           # Auto-configure server-level Nginx and SSL certificates
           echo "🔧 Auto-configuring server-level Nginx and SSL..."
           
-          # Create server-level Nginx configuration via Docker exec
-          echo "📝 Creating server-level Nginx configuration..."
-          
-          # Remove old api.uzswlu.uz configuration if exists
-          docker exec $(docker ps -q --filter "name=nginx") rm -f /etc/nginx/sites-enabled/api.uzswlu.uz 2>/dev/null || true
-          
-          # Create building.api.uzswlu.uz configuration
-          echo "📝 Creating building.api.uzswlu.uz Nginx configuration..."
-          
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "server {" > /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "    listen 80;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "    server_name building.api.uzswlu.uz;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "    location / {" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_pass http://127.0.0.1:5001;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header Host \$host;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header X-Real-IP \$remote_addr;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header X-Forwarded-Proto \$scheme;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header X-Forwarded-Host \$host;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header X-Forwarded-Port \$server_port;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header X-Forwarded-Host \$server_name;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "        proxy_set_header X-Forwarded-Server \$host;" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "    }" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          docker exec $(docker ps -q --filter "name=nginx") bash -c 'echo "}" >> /etc/nginx/sites-available/building.api.uzswlu.uz'
-          
-          # Enable the site
-          docker exec $(docker ps -q --filter "name=nginx") ln -sf /etc/nginx/sites-available/building.api.uzswlu.uz /etc/nginx/sites-enabled/
-          
-          # Test and reload Nginx
-          docker exec $(docker ps -q --filter "name=nginx") nginx -t && docker exec $(docker ps -q --filter "name=nginx") nginx -s reload
-          
-          echo "✅ Server-level Nginx configuration updated for building.api.uzswlu.uz"
+          echo "📝 Manual server-level Nginx configuration required:"
+          echo "1. Remove old api.uzswlu.uz configuration:"
+          echo "   sudo rm -f /etc/nginx/sites-enabled/api.uzswlu.uz"
+          echo ""
+          echo "2. Create building.api.uzswlu.uz configuration:"
+          echo "   sudo tee /etc/nginx/sites-available/building.api.uzswlu.uz > /dev/null << 'EOF'"
+          echo "   server {"
+          echo "       listen 80;"
+          echo "       server_name building.api.uzswlu.uz;"
+          echo "       location / {"
+          echo "           proxy_pass http://127.0.0.1:5001;"
+          echo "           proxy_set_header Host \$host;"
+          echo "           proxy_set_header X-Real-IP \$remote_addr;"
+          echo "           proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;"
+          echo "           proxy_set_header X-Forwarded-Proto \$scheme;"
+          echo "       }"
+          echo "   }"
+          echo "   EOF"
+          echo ""
+          echo "3. Enable the site:"
+          echo "   sudo ln -sf /etc/nginx/sites-available/building.api.uzswlu.uz /etc/nginx/sites-enabled/"
+          echo ""
+          echo "4. Test and reload Nginx:"
+          echo "   sudo nginx -t && sudo systemctl reload nginx"
+          echo ""
+          echo "✅ Building API is running on port 5001"
+          echo "📝 Server-level Nginx configuration requires manual setup"
 
       - name: ✅ Deployment success
         run: |
