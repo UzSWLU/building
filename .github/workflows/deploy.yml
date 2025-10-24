@@ -52,20 +52,20 @@ jobs:
           cd /var/www/building-api
           echo "Changed to /var/www/building-api"
           
-          # Force remove existing directory and clone fresh
+          # Force remove existing directory and clone fresh (without sudo)
           echo "Removing existing directory to avoid permission issues..."
           cd /var/www
-          sudo rm -rf building-api
+          rm -rf building-api
           mkdir -p building-api
           cd building-api
           
           echo "Cloning fresh repository..."
           git clone https://github.com/a-d-sh/building.git .
           
-          # Set proper ownership
+          # Set proper ownership (without sudo)
           echo "Setting proper ownership..."
-          sudo chown -R $(whoami):$(whoami) . 2>/dev/null || true
-          sudo chmod -R 755 . 2>/dev/null || true
+          chown -R $(whoami):$(whoami) . 2>/dev/null || true
+          chmod -R 755 . 2>/dev/null || true
           
           echo "Code updated successfully!"
           
