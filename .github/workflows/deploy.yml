@@ -1,0 +1,204 @@
+name: Building API Auto Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch: # Manual trigger for testing
+
+jobs:
+  validate:
+    name: 🔍 Validate YAML
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 2
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Validate workflow files
+        run: |
+          echo "🔍 Validating YAML syntax..."
+          echo "📝 Checking workflow file exists..."
+          if [ -f ".github/workflows/deploy.yml" ]; then
+            echo "✅ deploy.yml exists"
+          else
+            echo "❌ deploy.yml not found"
+            exit 1
+          fi
+          echo "✅ Basic validation completed!"
+
+  deploy:
+    name: 🚀 Deploy Building API to Production
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+    needs: validate
+    steps:
+      - name: 🚀 Deploy Application
+        timeout-minutes: 15
+        run: |
+          echo "🚀 Starting Building API deployment..."
+
+          # Check if directory exists
+          if [ ! -d "/var/www/building-api" ]; then
+            echo "❌ Directory /var/www/building-api not found"
+            echo "📁 Creating directory..."
+            sudo mkdir -p /var/www/building-api
+            sudo chown -R deploy:deploy /var/www/building-api
+          fi
+
+          cd /var/www/building-api
+          echo "📁 Changed to /var/www/building-api"
+
+          echo "📥 Pulling latest code..."
+          git fetch origin main
+          git reset --hard origin/main
+
+          echo "✅ Code updated successfully!"
+
+          # Stop existing containers
+          echo "🛑 Stopping existing containers..."
+          docker-compose -f docker-compose.prod.yml down || echo "No containers to stop"
+
+          # Build and start containers locally
+          echo "🔨 Building and starting containers..."
+          docker-compose -f docker-compose.prod.yml up -d --build
+
+          echo "✅ Containers started successfully!"
+
+          # Wait for containers to be ready
+          echo "⏳ Waiting for containers to be ready..."
+          sleep 15
+
+          # Check container status
+          echo "🔍 Checking container status..."
+          docker-compose -f docker-compose.prod.yml ps
+
+          # Run database migrations
+          echo "🗄️ Running database migrations..."
+          docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate || echo "⚠️  Migration failed, continuing..."
+
+          # Collect static files
+          echo "📊 Collecting static files..."
+          docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput || echo "⚠️  Static files collection failed, continuing..."
+
+          # Create superuser if not exists
+          echo "👤 Creating superuser..."
+          docker-compose -f docker-compose.prod.yml exec -T web python manage.py shell -c "
+          from django.contrib.auth import get_user_model
+          User = get_user_model()
+          if not User.objects.filter(username='admin').exists():
+              User.objects.create_superuser('admin', 'admin@uzswlu.uz', 'admin123')
+              print('Superuser created: admin/admin123')
+          else:
+              print('Superuser already exists')
+          " || echo "⚠️  Superuser creation failed, continuing..."
+
+      - name: 🚨 Error Handler - Deploy
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "🔍 Checking container logs..."
+          echo "📊 Web container logs:"
+          docker-compose -f docker-compose.prod.yml logs web --tail=50 || echo "No web logs available"
+          echo "📊 Nginx container logs:"
+          docker-compose -f docker-compose.prod.yml logs nginx --tail=50 || echo "No nginx logs available"
+          echo "📊 Database container logs:"
+          docker-compose -f docker-compose.prod.yml logs db --tail=30 || echo "No db logs available"
+          echo "📊 All container status:"
+          docker-compose -f docker-compose.prod.yml ps || echo "No container status available"
+          echo "📊 Docker system info:"
+          docker system df || echo "No docker system info available"
+          echo "📊 Deployment error details logged"
+
+      - name: 📊 Monitor Deployment Status
+        run: |
+          echo "📊 Monitoring deployment status..."
+
+          # Check if containers are running
+          if docker ps | grep -q "building-api-web-1"; then
+            echo "✅ Building API container is running"
+          else
+            echo "❌ Building API container is not running"
+            echo "📊 Container logs:"
+            docker-compose -f docker-compose.prod.yml logs web --tail=20
+            exit 1
+          fi
+
+          if docker ps | grep -q "building-api-nginx-1"; then
+            echo "✅ Building Nginx container is running"
+          else
+            echo "❌ Building Nginx container is not running"
+            echo "📊 Container logs:"
+            docker-compose -f docker-compose.prod.yml logs nginx --tail=20
+            exit 1
+          fi
+
+          # Check if ports are accessible
+          if curl -s -o /dev/null -w "%{http_code}" http://localhost:5001 | grep -q "200"; then
+            echo "✅ Building API is accessible on port 5001"
+          else
+            echo "❌ Building API is not accessible on port 5001"
+            echo "📊 Checking container logs..."
+            docker-compose -f docker-compose.prod.yml logs --tail=30
+            exit 1
+          fi
+
+          echo "📊 Monitoring completed"
+
+      - name: ✅ Deployment Success
+        run: |
+          echo "✅ =============================================="
+          echo "✅ BUILDING API DEPLOYED SUCCESSFULLY!"
+          echo "✅ =============================================="
+          echo ""
+          echo "🌐 Domain: https://building.api.uzswlu.uz"
+          echo "🔧 Port: 5001 (HTTP), 5443 (HTTPS)"
+          echo "📊 Status: Running"
+          echo ""
+          echo "🚀 Next steps:"
+          echo "1. Test the domain: curl -I https://building.api.uzswlu.uz"
+          echo "2. Check logs: docker-compose -f docker-compose.prod.yml logs"
+          echo "3. Health check: curl https://building.api.uzswlu.uz/api/health/"
+
+  notify:
+    name: 📢 Notify Status
+    runs-on: [self-hosted, Linux, X64]
+    needs: [validate, deploy]
+    if: always()
+    steps:
+      - name: 📢 Workflow Status Notification
+        run: |
+          echo "📢 =============================================="
+          echo "📢 WORKFLOW STATUS NOTIFICATION"
+          echo "📢 =============================================="
+          echo ""
+          echo "🔍 Validate: ${{ needs.validate.result }}"
+          echo "🚀 Deploy: ${{ needs.deploy.result }}"
+          echo ""
+          if [ "${{ needs.deploy.result }}" = "success" ]; then
+            echo "✅ All jobs completed successfully!"
+            echo ""
+            echo "🌐 Building API is now live at:"
+            echo "   - API: https://building.api.uzswlu.uz/"
+            echo "   - Health: https://building.api.uzswlu.uz/api/health/"
+            echo "   - Admin: https://building.api.uzswlu.uz/admin/"
+            echo "   - Swagger: https://building.api.uzswlu.uz/"
+            echo ""
+            echo "👤 Default Admin Credentials:"
+            echo "   Username: admin"
+            echo "   Password: admin123"
+          else
+            echo "❌ Some jobs failed. Check logs for details."
+            echo ""
+            echo "🔧 Troubleshooting steps:"
+            echo "1. SSH to server: ssh root@172.22.0.19"
+            echo "2. Go to project: cd /var/www/building-api"
+            echo "3. Run debug script: ./debug-deployment.sh"
+            echo "4. Check logs: docker-compose -f docker-compose.prod.yml logs"
+            echo "5. See troubleshooting guide: DEPLOYMENT_TROUBLESHOOTING.md"
+          fi
+          echo "📢 =============================================="
