@@ -14,7 +14,7 @@ on:
 jobs:
   validate:
     name: Validate YAML
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 2
 
     steps:
@@ -35,7 +35,7 @@ jobs:
 
   deploy:
     name: Deploy to Production
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 15
     needs: validate
     steps:
@@ -130,7 +130,7 @@ jobs:
 
   notify:
     name: Notify Status
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     needs: [validate, deploy]
     if: always()
     steps:
