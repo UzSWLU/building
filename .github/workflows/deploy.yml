@@ -1,18 +1,18 @@
-name: Auto Deploy
+name: Build Building API
 
 on:
   push:
     branches:
       - main
     paths-ignore:
-      - '**.md'
-      - 'docs/**'
+      - "**.md"
+      - "docs/**"
   workflow_dispatch: # Manual trigger for testing
 
 jobs:
   validate:
     name: 🔍 Validate YAML
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 2
 
     steps:
@@ -31,119 +31,40 @@ jobs:
           fi
           echo "✅ Basic validation completed!"
 
-  deploy:
-    name: 🚀 Deploy to Production
-    runs-on: [self-hosted, Linux, X64]
-    timeout-minutes: 15
+  build:
+    name: 🔨 Build Application
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: validate
     steps:
-      - name: 🚀 Deploy Application
-        timeout-minutes: 15
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔨 Build Docker Image
         run: |
-          echo "🚀 Starting deployment..."
+          echo "🔨 Building Docker image..."
+          docker build -f Dockerfile.prod -t building-api:latest .
 
-          # Check if directory exists
-          if [ ! -d "/var/www/building-api" ]; then
-            echo "❌ Directory /var/www/building-api not found"
-            exit 1
-          fi
-
-          cd /var/www/building-api
-          echo "📁 Changed to /var/www/building-api"
-
-          echo "📥 Pulling latest code..."
-          git fetch origin main
-          git reset --hard origin/main
-
-          echo "✅ Code updated successfully!"
-
-          # Stop existing containers
-          echo "🛑 Stopping existing containers..."
-          docker-compose -f docker-compose.prod.yml down || echo "No containers to stop"
-
-          # Build and start containers locally
-          echo "🔨 Building and starting containers..."
-          docker-compose -f docker-compose.prod.yml up -d --build
-
-          echo "✅ Containers started successfully!"
-
-          # Wait for containers to be ready
-          echo "⏳ Waiting for containers to be ready..."
-          sleep 15
-
-          # Check container status
-          echo "🔍 Checking container status..."
-          docker-compose -f docker-compose.prod.yml ps
-
-      - name: 🚨 Error Handler - Deploy
-        if: failure()
+      - name: 🧪 Test Docker Image
         run: |
-          echo "❌ Deployment failed!"
-          echo "🔍 Checking container logs..."
-          docker-compose -f docker-compose.prod.yml logs --tail=50 || echo "No logs available"
-          echo "📊 Deployment error details logged"
+          echo "🧪 Testing Docker image..."
+          docker run --rm building-api:latest python manage.py check
 
-      - name: 📊 Monitor Deployment Status
-        run: |
-          echo "📊 Monitoring deployment status..."
-
-          # Check if containers are running
-          if docker ps | grep -q "building-web"; then
-            echo "✅ Building Web container is running"
-          else
-            echo "❌ Building Web container is not running"
-            exit 1
-          fi
-
-          if docker ps | grep -q "building-nginx"; then
-            echo "✅ Building Nginx container is running"
-          else
-            echo "❌ Building Nginx container is not running"
-            exit 1
-          fi
-
-          # Check if ports are accessible
-          if curl -s -o /dev/null -w "%{http_code}" http://localhost:5001 | grep -q "200"; then
-            echo "✅ Building API is accessible on port 5001"
-          else
-            echo "❌ Building API is not accessible on port 5001"
-            exit 1
-          fi
-
-          echo "📊 Monitoring completed"
-
-      - name: ✅ Deployment Success
+      - name: ✅ Build Success
         run: |
           echo "✅ =============================================="
-          echo "✅ BUILDING API DEPLOYED SUCCESSFULLY!"
+          echo "✅ BUILDING API BUILD COMPLETED!"
           echo "✅ =============================================="
+          echo ""
+          echo "🔗 Docker image: building-api:latest"
+          echo "🔗 Ready for manual deployment"
+          echo ""
+          echo "📋 Manual deployment steps:"
+          echo "1. SSH to server: ssh root@172.22.0.19"
+          echo "2. Go to directory: cd /var/www/building-api"
+          echo "3. Pull latest code: git pull origin main"
+          echo "4. Deploy: docker-compose -f docker-compose.prod.yml down -v"
+          echo "5. Deploy: docker-compose -f docker-compose.prod.yml up -d --build"
           echo ""
           echo "🌐 Domain: https://building.api.uzswlu.uz"
-          echo "🔧 Port: 5001 (HTTP), 5443 (HTTPS)"
-          echo "📊 Status: Running"
-          echo ""
-          echo "🚀 Next steps:"
-          echo "1. Test the domain: curl -I https://building.api.uzswlu.uz"
-          echo "2. Check logs: docker-compose -f docker-compose.prod.yml logs"
-
-  notify:
-    name: 📢 Notify Status
-    runs-on: [self-hosted, Linux, X64]
-    needs: [validate, deploy]
-    if: always()
-    steps:
-      - name: 📢 Workflow Status Notification
-        run: |
-          echo "📢 =============================================="
-          echo "📢 WORKFLOW STATUS NOTIFICATION"
-          echo "📢 =============================================="
-          echo ""
-          echo "🔍 Validate: ${{ needs.validate.result }}"
-          echo "🚀 Deploy: ${{ needs.deploy.result }}"
-          echo ""
-          if [ "${{ needs.deploy.result }}" = "success" ]; then
-            echo "✅ All jobs completed successfully!"
-          else
-            echo "❌ Some jobs failed. Check logs for details."
-          fi
-          echo "📢 =============================================="
+          echo "👤 Admin: admin / admin123"
