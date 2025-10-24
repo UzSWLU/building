@@ -129,23 +129,17 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     needs: test
     timeout-minutes: 10
-    # Run as root user to avoid permission issues
-    container:
-      image: ubuntu:22.04
-      options: --user root
+    # Run directly on server (not in container) to access nginx and docker
 
     steps:
-      - name: 📦 Install required packages
+      - name: 📦 Check required packages
         run: |
-          echo "📦 Installing required packages..."
-          apt-get update
-          apt-get install -y git curl wget
-
-          # Install Docker Compose
-          curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          chmod +x /usr/local/bin/docker-compose
-
-          echo "✅ Packages installed successfully"
+          echo "📦 Checking required packages..."
+          which git || echo "⚠️ git not found"
+          which docker || echo "⚠️ docker not found"
+          which docker-compose || echo "⚠️ docker-compose not found"
+          which curl || echo "⚠️ curl not found"
+          echo "✅ Package check completed"
 
       - name: 📥 Setup and pull latest code
         run: |
@@ -405,36 +399,124 @@ jobs:
           echo "📝 api.uzswlu.uz should be moved to building.api.uzswlu.uz"
           echo "📝 Current status will be checked by server admin"
 
-          # Auto-configure server-level Nginx and SSL certificates
-          echo "🔧 Auto-configuring server-level Nginx and SSL..."
+          # Run universal server setup script
+          echo "🚀 Running universal server setup..."
           
-          echo "📝 Manual server-level Nginx configuration required:"
-          echo "1. Remove old api.uzswlu.uz configuration:"
-          echo "   sudo rm -f /etc/nginx/sites-enabled/api.uzswlu.uz"
-          echo ""
-          echo "2. Create building.api.uzswlu.uz configuration:"
-          echo "   sudo tee /etc/nginx/sites-available/building.api.uzswlu.uz > /dev/null << 'EOF'"
-          echo "   server {"
-          echo "       listen 80;"
-          echo "       server_name building.api.uzswlu.uz;"
-          echo "       location / {"
-          echo "           proxy_pass http://127.0.0.1:5001;"
-          echo "           proxy_set_header Host \$host;"
-          echo "           proxy_set_header X-Real-IP \$remote_addr;"
-          echo "           proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;"
-          echo "           proxy_set_header X-Forwarded-Proto \$scheme;"
-          echo "       }"
-          echo "   }"
-          echo "   EOF"
-          echo ""
-          echo "3. Enable the site:"
-          echo "   sudo ln -sf /etc/nginx/sites-available/building.api.uzswlu.uz /etc/nginx/sites-enabled/"
-          echo ""
-          echo "4. Test and reload Nginx:"
-          echo "   sudo nginx -t && sudo systemctl reload nginx"
-          echo ""
-          echo "✅ Building API is running on port 5001"
-          echo "📝 Server-level Nginx configuration requires manual setup"
+          # Create universal setup script
+          cat > /tmp/universal-setup.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "🚀 Universal Server Setup Script"
+echo "================================="
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+print_status() { echo -e "${GREEN}✅ $1${NC}"; }
+print_warning() { echo -e "${YELLOW}⚠️ $1${NC}"; }
+print_error() { echo -e "${RED}❌ $1${NC}"; }
+print_info() { echo -e "${BLUE}ℹ️ $1${NC}"; }
+
+# Function to create nginx configuration
+create_nginx_config() {
+    local domain=$1
+    local port=$2
+    local ssl_enabled=$3
+    local config_file="/etc/nginx/sites-available/$domain"
+    
+    print_info "Creating Nginx configuration for $domain..."
+    
+    # Remove old configuration if exists
+    sudo rm -f "/etc/nginx/sites-enabled/$domain"
+    
+    # Create new configuration
+    sudo tee "$config_file" > /dev/null << EOF
+server {
+    listen 80;
+    server_name $domain;
+EOF
+
+    if [ "$ssl_enabled" = "true" ]; then
+        sudo tee -a "$config_file" > /dev/null << EOF
+    location /.well-known/acme-challenge/ {
+        root /var/www/html;
+    }
+    location / {
+        return 301 https://\$server_name\$request_uri;
+    }
+}
+server {
+    listen 443 ssl http2;
+    server_name $domain;
+    ssl_certificate /var/www/sertifikat/STAR25_uzswlu_uz.crt;
+    ssl_certificate_key /var/www/sertifikat/STAR25_uzswlu_uz.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    ssl_session_tickets off;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+EOF
+    fi
+
+    sudo tee -a "$config_file" > /dev/null << EOF
+    location / {
+        proxy_pass http://127.0.0.1:$port;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Port \$server_port;
+        proxy_set_header X-Forwarded-Host \$server_name;
+        proxy_set_header X-Forwarded-Server \$host;
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 30s;
+    }
+}
+EOF
+
+    # Enable the site
+    sudo ln -sf "$config_file" "/etc/nginx/sites-enabled/"
+    print_status "Nginx configuration created for $domain"
+}
+
+# Main setup
+print_info "Setting up domains..."
+
+# Remove old configurations
+sudo rm -f /etc/nginx/sites-enabled/api.uzswlu.uz
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# Create configurations
+create_nginx_config "auth.uzswlu.uz" "3000" "true"
+create_nginx_config "building.api.uzswlu.uz" "5001" "false"
+
+# Test and reload nginx
+if sudo nginx -t; then
+    sudo systemctl reload nginx
+    print_status "Nginx reloaded successfully"
+else
+    print_error "Nginx configuration is invalid"
+    exit 1
+fi
+
+print_status "Universal server setup completed!"
+EOF
+
+          # Make script executable and run it
+          chmod +x /tmp/universal-setup.sh
+          /tmp/universal-setup.sh
 
       - name: ✅ Deployment success
         run: |
