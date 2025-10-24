@@ -36,6 +36,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 15
     needs: validate
+    if: always() && needs.validate.result == 'success'
     steps:
       - name: Deploy Application
         timeout-minutes: 15
@@ -52,20 +53,15 @@ jobs:
           cd /var/www/building-api
           echo "Changed to /var/www/building-api"
           
-          # Force remove existing directory and clone fresh (without sudo)
-          echo "Removing existing directory to avoid permission issues..."
-          cd /var/www
-          rm -rf building-api
-          mkdir -p building-api
-          cd building-api
-          
-          echo "Cloning fresh repository..."
-          git clone https://github.com/a-d-sh/building.git .
-          
-          # Set proper ownership (without sudo)
-          echo "Setting proper ownership..."
-          chown -R $(whoami):$(whoami) . 2>/dev/null || true
-          chmod -R 755 . 2>/dev/null || true
+          # Simple approach - just pull latest code
+          echo "Pulling latest code..."
+          if [ -d ".git" ]; then
+            git fetch origin main
+            git reset --hard origin/main
+          else
+            echo "Git repository not found, cloning..."
+            git clone https://github.com/a-d-sh/building.git .
+          fi
           
           echo "Code updated successfully!"
           
