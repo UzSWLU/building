@@ -5,145 +5,145 @@ on:
     branches:
       - main
     paths-ignore:
-      - '**.md'
-      - 'docs/**'
+      - "**.md"
+      - "docs/**"
   workflow_dispatch: # Manual trigger for testing
 
 jobs:
   validate:
-    name: 🔍 Validate YAML
+    name: Validate YAML
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 2
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔍 Validate workflow files
+      - name: Validate workflow files
         run: |
-          echo "🔍 Validating YAML syntax..."
-          echo "📝 Checking workflow file exists..."
+          echo "Validating YAML syntax..."
+          echo "Checking workflow file exists..."
           if [ -f ".github/workflows/deploy.yml" ]; then
-            echo "✅ deploy.yml exists"
+            echo "deploy.yml exists"
           else
-            echo "❌ deploy.yml not found"
+            echo "deploy.yml not found"
             exit 1
           fi
-          echo "✅ Basic validation completed!"
+          echo "Basic validation completed!"
 
   deploy:
-    name: 🚀 Deploy to Production
+    name: Deploy to Production
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 15
     needs: validate
     steps:
-      - name: 🚀 Deploy Application
+      - name: Deploy Application
         timeout-minutes: 15
         run: |
-          echo "🚀 Starting deployment..."
+          echo "Starting deployment..."
           
           # Check if directory exists
           if [ ! -d "/var/www/building-api" ]; then
-            echo "❌ Directory /var/www/building-api not found"
+            echo "Directory /var/www/building-api not found"
             exit 1
           fi
           
           cd /var/www/building-api
-          echo "📁 Changed to /var/www/building-api"
+          echo "Changed to /var/www/building-api"
           
-          echo "📥 Pulling latest code..."
-          git fetch origin main
-          git reset --hard origin/main
+          echo "Pulling latest code..."
+            git fetch origin main
+            git reset --hard origin/main
           
-          echo "✅ Code updated successfully!"
+          echo "Code updated successfully!"
           
           # Stop existing containers
-          echo "🛑 Stopping existing containers..."
+          echo "Stopping existing containers..."
           docker-compose -f docker-compose.prod.yml down || echo "No containers to stop"
           
           # Build and start containers locally
-          echo "🔨 Building and starting containers..."
+          echo "Building and starting containers..."
           docker-compose -f docker-compose.prod.yml up -d --build
           
-          echo "✅ Containers started successfully!"
+          echo "Containers started successfully!"
 
           # Wait for containers to be ready
-          echo "⏳ Waiting for containers to be ready..."
+          echo "Waiting for containers to be ready..."
           sleep 15
-          
+
           # Check container status
-          echo "🔍 Checking container status..."
+          echo "Checking container status..."
           docker-compose -f docker-compose.prod.yml ps
 
-      - name: 🚨 Error Handler - Deploy
+      - name: Error Handler - Deploy
         if: failure()
         run: |
-          echo "❌ Deployment failed!"
-          echo "🔍 Checking container logs..."
+          echo "Deployment failed!"
+          echo "Checking container logs..."
           docker-compose -f docker-compose.prod.yml logs --tail=50 || echo "No logs available"
-          echo "📊 Deployment error details logged"
+          echo "Deployment error details logged"
 
-      - name: 📊 Monitor Deployment Status
+      - name: Monitor Deployment Status
         run: |
-          echo "📊 Monitoring deployment status..."
-
+          echo "Monitoring deployment status..."
+          
           # Check if containers are running
           if docker ps | grep -q "building-api-web-1"; then
-            echo "✅ Building API container is running"
+            echo "Building API container is running"
           else
-            echo "❌ Building API container is not running"
+            echo "Building API container is not running"
             exit 1
           fi
-
+          
           if docker ps | grep -q "building-api-nginx-1"; then
-            echo "✅ Building Nginx container is running"
+            echo "Building Nginx container is running"
           else
-            echo "❌ Building Nginx container is not running"
+            echo "Building Nginx container is not running"
             exit 1
           fi
-
+          
           # Check if ports are accessible
           if curl -s -o /dev/null -w "%{http_code}" http://localhost:5001 | grep -q "200"; then
-            echo "✅ Building API is accessible on port 5001"
+            echo "Building API is accessible on port 5001"
           else
-            echo "❌ Building API is not accessible on port 5001"
+            echo "Building API is not accessible on port 5001"
             exit 1
           fi
 
-          echo "📊 Monitoring completed"
+          echo "Monitoring completed"
 
-      - name: ✅ Deployment Success
+      - name: Deployment Success
         run: |
-          echo "✅ =============================================="
-          echo "✅ BUILDING API DEPLOYED SUCCESSFULLY!"
-          echo "✅ =============================================="
+          echo "=============================================="
+          echo "BUILDING API DEPLOYED SUCCESSFULLY!"
+          echo "=============================================="
           echo ""
-          echo "🌐 Domain: https://building.api.uzswlu.uz"
-          echo "🔧 Port: 5001 (HTTP), 5443 (HTTPS)"
-          echo "📊 Status: Running"
+          echo "Domain: https://building.api.uzswlu.uz"
+          echo "Port: 5001 (HTTP), 5443 (HTTPS)"
+          echo "Status: Running"
           echo ""
-          echo "🚀 Next steps:"
+          echo "Next steps:"
           echo "1. Test the domain: curl -I https://building.api.uzswlu.uz"
           echo "2. Check logs: docker-compose -f docker-compose.prod.yml logs"
 
   notify:
-    name: 📢 Notify Status
+    name: Notify Status
     runs-on: [self-hosted, Linux, X64]
     needs: [validate, deploy]
     if: always()
     steps:
-      - name: 📢 Workflow Status Notification
+      - name: Workflow Status Notification
         run: |
-          echo "📢 =============================================="
-          echo "📢 WORKFLOW STATUS NOTIFICATION"
-          echo "📢 =============================================="
+          echo "=============================================="
+          echo "WORKFLOW STATUS NOTIFICATION"
+          echo "=============================================="
           echo ""
-          echo "🔍 Validate: ${{ needs.validate.result }}"
-          echo "🚀 Deploy: ${{ needs.deploy.result }}"
+          echo "Validate: ${{ needs.validate.result }}"
+          echo "Deploy: ${{ needs.deploy.result }}"
           echo ""
           if [ "${{ needs.deploy.result }}" = "success" ]; then
-            echo "✅ All jobs completed successfully!"
+            echo "All jobs completed successfully!"
           else
-            echo "❌ Some jobs failed. Check logs for details."
+            echo "Some jobs failed. Check logs for details."
           fi
-          echo "📢 =============================================="
+          echo "=============================================="
