@@ -52,6 +52,11 @@ jobs:
           cd /var/www/building-api
           echo "Changed to /var/www/building-api"
           
+          # Fix permissions before git operations
+          echo "Fixing permissions..."
+          sudo chown -R $(whoami):$(whoami) . 2>/dev/null || true
+          sudo chmod -R 755 . 2>/dev/null || true
+          
           # Check if git repository exists
           if [ ! -d ".git" ]; then
             echo "Git repository not found, cloning..."
@@ -61,6 +66,11 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
           fi
+          
+          # Fix permissions after git operations
+          echo "Fixing permissions after git operations..."
+          sudo chown -R $(whoami):$(whoami) . 2>/dev/null || true
+          sudo chmod -R 755 . 2>/dev/null || true
           
           echo "Code updated successfully!"
           
