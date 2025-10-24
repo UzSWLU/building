@@ -19,40 +19,40 @@ jobs:
           echo "📁 Working directory: $(pwd)"
           echo "📅 Deployment time: $(date)"
 
-    - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      
-    - name: Build Docker image
-      run: |
-        echo "🔨 Building Docker image..."
-        docker build -f Dockerfile.prod -t building-api:latest .
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
         
-    - name: Test Docker image
-      run: |
-        echo "🧪 Testing Docker image..."
-        docker run --rm building-api:latest python manage.py check
-        
-    - name: Build success
-      run: |
-        echo "✅ Docker image built successfully!"
-        echo "📊 Image details:"
-        docker images building-api:latest
+      - name: Build Docker image
+        run: |
+          echo "🔨 Building Docker image..."
+          docker build -f Dockerfile.prod -t building-api:latest .
+          
+      - name: Test Docker image
+        run: |
+          echo "🧪 Testing Docker image..."
+          docker run --rm building-api:latest python manage.py check
+          
+      - name: Build success
+        run: |
+          echo "✅ Docker image built successfully!"
+          echo "📊 Image details:"
+          docker images building-api:latest
 
-    - name: Deployment success
-      run: |
-        echo ""
-        echo "✅ =============================================="
-        echo "✅ BUILDING API BUILD COMPLETED!"
-        echo "✅ =============================================="
-        echo ""
-        echo "🔗 Docker image: building-api:latest"
-        echo "🔗 Ready for deployment to server"
-        echo ""
-        echo "📋 Next steps:"
-        echo "1. Push image to registry"
-        echo "2. Deploy to production server"
-        echo "3. Configure domain: https://building.swagger.uzswlu.uz/"
-        echo ""
-        echo "👤 Default Admin Credentials:"
-        echo "   Username: admin"
-        echo "   Password: admin123"
+      - name: Deployment success
+        run: |
+          echo ""
+          echo "✅ =============================================="
+          echo "✅ BUILDING API BUILD COMPLETED!"
+          echo "✅ =============================================="
+          echo ""
+          echo "🔗 Docker image: building-api:latest"
+          echo "🔗 Ready for deployment to server"
+          echo ""
+          echo "📋 Next steps:"
+          echo "1. Push image to registry"
+          echo "2. Deploy to production server"
+          echo "3. Configure domain: https://building.swagger.uzswlu.uz/"
+          echo ""
+          echo "👤 Default Admin Credentials:"
+          echo "   Username: admin"
+          echo "   Password: admin123"
